@@ -67,10 +67,12 @@ class Car extends Thread {
 	// Semaphores
 	HashMap<String, Semaphore> sem;
 	Alley alley;
+	Barrier barrier;
 	
-	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley) {
+	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley, Barrier barrier) {
 		this.sem = sem;
 		this.alley = alley;
+		this.barrier = barrier;
 		this.no = no;
 		this.cd = cd;
 		mygate = g;
@@ -180,29 +182,31 @@ class Alley {
 	
 	Semaphore alley;
 	Semaphore pair;
-	volatile int[] counters; //clockwise, counter-clockwise, first
+	volatile int cCounter; //clockwise counter
+	volatile int ccCounter; //counter-clockwise counter
 	
 	public Alley() {
 		this.alley = new Semaphore(1);
 		this.pair = new Semaphore(1);
-		counters = new int[3];
+		cCounter = 0;
+		ccCounter = 0;
 		
 	}
 	
 	public void enter(int no) throws InterruptedException {
 		if (no >= 5) {
-			counters[0]++;
-			if (counters[0] == 1 ) {
+			cCounter++;
+			if (cCounter == 1) {
 				alley.P();
 			}
 		} else {
-			counters[1]++;
+			ccCounter++;
 			System.out.println(pair.toString()+ " "+alley.toString());
-			if (counters[1] == 1) {
+			if (ccCounter == 1) {
 				pair.P();
 				alley.P();
 				pair.V();
-			} else if (counters[1] == 2){
+			} else if (ccCounter == 2){
 			    pair.P();
 			    pair.V();
 			}
@@ -211,17 +215,27 @@ class Alley {
 	
 	public void leave(int no) {
 		if (no >= 5) {
-			counters[0]--;
-			if (counters[0] == 0) {
+			cCounter--;
+			if (cCounter == 0) {
 				alley.V();
 			}
 		} else {
-			counters[1]--;
-			if (counters[1] == 0) {
+			ccCounter--;
+			if (ccCounter == 0) {
 				alley.V();
 			}
 		}
 	}
+}
+
+class Barrier {
+	
+	public void sync() {}
+	
+	public void on() {}
+	
+	public void off() {}
+	
 }
 
 public class CarControl implements CarControlI {
@@ -232,6 +246,7 @@ public class CarControl implements CarControlI {
 
 	HashMap<String, Semaphore> sem;
 	Alley alley;
+	Barrier barrier;
 			
 	public CarControl(CarDisplayI cd) {
 		this.cd = cd;
@@ -239,6 +254,7 @@ public class CarControl implements CarControlI {
 		gate = new Gate[9];
 		sem = new HashMap<>();
 		alley = new Alley();
+		barrier = new Barrier();
 		for (int i = 0; i < 11; i++) {
 			for (int j = 0; j < 12; j++) {
 				Pos p = new Pos(i, j);
@@ -248,7 +264,7 @@ public class CarControl implements CarControlI {
 
 		for (int no = 0; no < 9; no++) {
 			gate[no] = new Gate();
-			car[no] = new Car(no, cd, gate[no], sem, alley);
+			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
 			car[no].start();
 		}
 
