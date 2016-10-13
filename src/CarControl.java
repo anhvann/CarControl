@@ -66,15 +66,11 @@ class Car extends Thread {
 
 	// Semaphores
 	HashMap<String, Semaphore> sem;
-	Semaphore alley;
-	Semaphore pair;
-	volatile int[] counters; //clockwise, counter-clockwise, first
+	Alley alley;
 	
-	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Semaphore alley, Semaphore pair, int[] counters) {
-		this.counters = counters;
+	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley) {
 		this.sem = sem;
 		this.alley = alley;
-		this.pair = pair;
 		this.no = no;
 		this.cd = cd;
 		mygate = g;
@@ -143,38 +139,18 @@ class Car extends Thread {
 					mygate.pass();
 					speed = chooseSpeed();
 				}
-				if (no >= 5) {
-					if (curpos.row == 10 && curpos.col == 0) {
-						counters[0]++;
-						if (counters[0] == 1 ) {
-							alley.P();
-						}
-					} else if (curpos.row == 0 && curpos.col == 3) {
-						counters[0]--;
-						if (counters[0] == 0) {
-							alley.V();
-						}
-					}
-				} else {
-					if ((curpos.row == 1 || curpos.row == 2) && curpos.col == 3) {
-						counters[1]++;
-						System.out.println(pair.toString()+ " "+alley.toString());
-						if (counters[1] == 1) {
-							pair.P();
-							alley.P();
-							pair.V();
-						} else if (counters[1] == 2){
-						    pair.P();
-						    pair.V();
-						}
-					} else if (curpos.row == 9 && curpos.col == 1) {
-						counters[1]--;
-						if (counters[1] == 0) {
-							alley.V();
-						}
-					}
+				
+				boolean cEnter = curpos.row == 10 && curpos.col == 0;
+				boolean ccEnter = (curpos.row == 1 || curpos.row == 2) && curpos.col == 3;
+				boolean cLeave = curpos.row == 0 && curpos.col == 3;
+				boolean ccLeave = curpos.row == 9 && curpos.col == 1;
+				
+				if (cEnter || ccEnter) {
+					alley.enter(no);
+				} else if (cLeave || ccLeave) {
+					alley.leave(no);
 				}
-
+				
 				sem.get(nextPos(curpos).toString()).P();
 				newpos = nextPos(curpos);
 
@@ -200,6 +176,54 @@ class Car extends Thread {
 
 }
 
+class Alley {
+	
+	Semaphore alley;
+	Semaphore pair;
+	volatile int[] counters; //clockwise, counter-clockwise, first
+	
+	public Alley() {
+		this.alley = new Semaphore(1);
+		this.pair = new Semaphore(1);
+		counters = new int[3];
+		
+	}
+	
+	public void enter(int no) throws InterruptedException {
+		if (no >= 5) {
+			counters[0]++;
+			if (counters[0] == 1 ) {
+				alley.P();
+			}
+		} else {
+			counters[1]++;
+			System.out.println(pair.toString()+ " "+alley.toString());
+			if (counters[1] == 1) {
+				pair.P();
+				alley.P();
+				pair.V();
+			} else if (counters[1] == 2){
+			    pair.P();
+			    pair.V();
+			}
+		}
+	}
+	
+	public void leave(int no) {
+		if (no >= 5) {
+			counters[0]--;
+			if (counters[0] == 0) {
+				alley.V();
+			}
+		} else {
+			counters[1]--;
+			if (counters[1] == 0) {
+				alley.V();
+			}
+		}
+	}
+}
+
 public class CarControl implements CarControlI {
 
 	CarDisplayI cd; // Reference to GUI
@@ -207,16 +231,14 @@ public class CarControl implements CarControlI {
 	Gate[] gate; // Gates
 
 	HashMap<String, Semaphore> sem;
-	Semaphore alley = new Semaphore(1);
-	Semaphore pair = new Semaphore(1);
-	int[] counters = new int[3]; 
+	Alley alley;
 			
 	public CarControl(CarDisplayI cd) {
 		this.cd = cd;
 		car = new Car[9];
 		gate = new Gate[9];
 		sem = new HashMap<>();
-		Semaphore alley = new Semaphore(1);
+		alley = new Alley();
 		for (int i = 0; i < 11; i++) {
 			for (int j = 0; j < 12; j++) {
 				Pos p = new Pos(i, j);
@@ -226,7 +248,7 @@ public class CarControl implements CarControlI {
 
 		for (int no = 0; no < 9; no++) {
 			gate[no] = new Gate();
-			car[no] = new Car(no, cd, gate[no], sem, alley, pair, counters);
+			car[no] = new Car(no, cd, gate[no], sem, alley);
 			car[no].start();
 		}
 
