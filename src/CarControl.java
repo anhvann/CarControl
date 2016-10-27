@@ -208,7 +208,7 @@ class Alley {
 				System.out.println("Car " + no + " tries to take alleyP");
 				alley.P();
 				System.out.println("Car " + no + " takes alleyP");
-			} else {
+			} else if (cCounter > 1) {
 				System.out.println("Car " + no + " is not the first car in alley");
 				System.out.println("Car " + no + " tries to release counterV in enter");
 				counter.V();
@@ -219,7 +219,7 @@ class Alley {
 			counter.P();
 			System.out.println("Car " + no + " takes counterP in enter");
 			ccCounter++;
-			System.out.println("Car " + no + " increments cCounter to "+ccCounter);
+			System.out.println("Car " + no + " increments ccCounter to "+ccCounter);
 			if (ccCounter == 1) {
 				System.out.println("Car " + no + " is the first car in alley");
 				System.out.println("Car " + no + " tries to release counterV in enter");
@@ -234,7 +234,7 @@ class Alley {
 				System.out.println("Car " + no + " tries to release PairP");
 				pair.V();
 				System.out.println("Car " + no + " releases pairP");
-			} else if (ccCounter == 2){
+			} else if (ccCounter > 1){
 				System.out.println("Car " + no + " is not the first car in alley");
 				System.out.println("Car " + no + " tries to release counterV in enter");
 			    counter.V();
@@ -245,7 +245,7 @@ class Alley {
 				System.out.println("Car " + no + " tries to release PairP");
 			    pair.V();
 				System.out.println("Car " + no + " releases pairP");
-			}
+			} 
 		}
 	}
 	
