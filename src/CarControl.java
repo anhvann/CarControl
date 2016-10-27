@@ -182,48 +182,104 @@ class Alley {
 	
 	Semaphore alley;
 	Semaphore pair;
+	Semaphore counter;
 	volatile int cCounter; //clockwise counter
 	volatile int ccCounter; //counter-clockwise counter
 	
 	public Alley() {
 		this.alley = new Semaphore(1);
 		this.pair = new Semaphore(1);
+		this.counter = new Semaphore(1);
 		cCounter = 0;
 		ccCounter = 0;
-		
 	}
 	
 	public void enter(int no) throws InterruptedException {
 		if (no >= 5) {
+			System.out.println("Car " + no + " tries to take counterP in enter");
+			counter.P();
+			System.out.println("Car " + no + " takes counterP in enter");
 			cCounter++;
+			System.out.println("Car " + no + " increments cCounter to "+cCounter);
 			if (cCounter == 1) {
+				System.out.println("Car " + no + " is the first car in alley");
+				counter.V();
+				System.out.println("Car " + no + " releases counterV in enter");
+				System.out.println("Car " + no + " tries to take alleyP");
 				alley.P();
+				System.out.println("Car " + no + " takes alleyP");
+			} else {
+				System.out.println("Car " + no + " is not the first car in alley");
+				System.out.println("Car " + no + " tries to release counterV in enter");
+				counter.V();
+				System.out.println("Car " + no + " releases counterV in enter");
 			}
 		} else {
+			System.out.println("Car " + no + " tries to take counterP in enter");
+			counter.P();
+			System.out.println("Car " + no + " takes counterP in enter");
 			ccCounter++;
-			System.out.println(pair.toString()+ " "+alley.toString());
+			System.out.println("Car " + no + " increments cCounter to "+ccCounter);
 			if (ccCounter == 1) {
+				System.out.println("Car " + no + " is the first car in alley");
+				System.out.println("Car " + no + " tries to release counterV in enter");
+				counter.V();
+				System.out.println("Car " + no + " releases counterV in enter");
+				System.out.println("Car " + no + " tries to take PairP");
 				pair.P();
+				System.out.println("Car " + no + " takes pairP");
+				System.out.println("Car " + no + " tries to take alleyP");
 				alley.P();
+				System.out.println("Car " + no + " takes alleyP");
+				System.out.println("Car " + no + " tries to release PairP");
 				pair.V();
+				System.out.println("Car " + no + " releases pairP");
 			} else if (ccCounter == 2){
-			    pair.P();
+				System.out.println("Car " + no + " is not the first car in alley");
+				System.out.println("Car " + no + " tries to release counterV in enter");
+			    counter.V();
+				System.out.println("Car " + no + " releases counterV in enter");
+				System.out.println("Car " + no + " tries to take PairP");
+				pair.P();
+				System.out.println("Car " + no + " takes pairP");
+				System.out.println("Car " + no + " tries to release PairP");
 			    pair.V();
+				System.out.println("Car " + no + " releases pairP");
 			}
 		}
 	}
 	
-	public void leave(int no) {
+	public void leave(int no) throws InterruptedException {
 		if (no >= 5) {
+			System.out.println("Car " + no + " tries to take counterP in leave");
+			counter.P();
+			System.out.println("Car " + no + " takes counterP in leave");
 			cCounter--;
+			System.out.println("Car " + no + " decrements cCounter to "+cCounter);
 			if (cCounter == 0) {
+				System.out.println("Car " + no + " is the last car to leave alley");
+				System.out.println("Car " + no + " tries to release alleyV");
 				alley.V();
+				System.out.println("Car " + no + " releases alley");
 			}
+			System.out.println("Car " + no + " tries to release counterP in leave");
+			counter.V();
+			System.out.println("Car " + no + " releases counter in leave");
 		} else {
+			System.out.println("Car " + no + " tries to take counterP in leave");
+			counter.P();
+			System.out.println("Car " + no + " takes counterP in leave");
 			ccCounter--;
+			System.out.println("Car " + no + " decrements ccCounter to "+ccCounter);
 			if (ccCounter == 0) {
+				System.out.println("Car " + no + " is the last car to leave alley");
+				System.out.println("Car " + no + " tries to release alleyV");
 				alley.V();
+				System.out.println("Car " + no + " releases alley");
 			}
+			System.out.println("Car " + no + " tries to release counterP in leave");
+			counter.V();
+			System.out.println("Car " + no + " releases counter in leave");
 		}
 	}
 }
