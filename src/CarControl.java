@@ -55,10 +55,10 @@ class Car extends Thread {
 	CarDisplayI cd; // GUI part
 
 	int no; // Car number
-	Pos startpos; // Startpositon (provided by GUI)
-	Pos barpos; // Barrierpositon (provided by GUI)
+	Pos startpos; // Start position (provided by GUI)
+	Pos barpos; // Barrier position (provided by GUI)
 	Color col; // Car color
-	Gate mygate; // Gate at startposition
+	Gate mygate; // Gate at start position
 
 	int speed; // Current car speed
 	Pos curpos; // Current position
@@ -146,6 +146,12 @@ class Car extends Thread {
 				boolean ccEnter = (curpos.row == 1 || curpos.row == 2) && curpos.col == 3;
 				boolean cLeave = curpos.row == 0 && curpos.col == 3;
 				boolean ccLeave = curpos.row == 9 && curpos.col == 1;
+				boolean cBarrier = no >= 5 && curpos.row == 5 && curpos.col >= 3 && curpos.col <= 11;
+				boolean ccBarrier = no <5 && curpos.row == 6 && curpos.col >= 3 && curpos.col <= 11;
+						
+				if (cBarrier || ccBarrier){
+					barrier.sync(no);
+				}
 				
 				if (cEnter || ccEnter) {
 					alley.enter(no);
@@ -285,12 +291,36 @@ class Alley {
 }
 
 class Barrier {
+	private Boolean status;
+	private int[] arrive;
+	private int N = 9;
 	
-	public void sync() {}
+	public Barrier (){
+		status = false;
+		arrive = new int[N];
+	}
 	
-	public void on() {}
+	public void sync(int i) throws InterruptedException {
+		if(status){
+			for (int s = 1; s<=3; s++){
+				arrive[i]++;
+				int j = (i + (int) Math.pow(2, s-1))%N;
+				while(arrive[j] < arrive[i]){
+					if(!status){
+						break;
+					}
+				}
+			}
+		}
+	}
 	
-	public void off() {}
+	public void on() {
+		status = true;
+	}
+		
+	public void off() {
+		status = false;
+	}
 	
 }
 
@@ -303,7 +333,7 @@ public class CarControl implements CarControlI {
 	HashMap<String, Semaphore> sem;
 	Alley alley;
 	Barrier barrier;
-			
+	
 	public CarControl(CarDisplayI cd) {
 		this.cd = cd;
 		car = new Car[9];
@@ -311,6 +341,7 @@ public class CarControl implements CarControlI {
 		sem = new HashMap<>();
 		alley = new Alley();
 		barrier = new Barrier();
+		
 		for (int i = 0; i < 11; i++) {
 			for (int j = 0; j < 12; j++) {
 				Pos p = new Pos(i, j);
@@ -335,10 +366,12 @@ public class CarControl implements CarControlI {
 	}
 
 	public void barrierOn() {
+		barrier.on();
 		cd.println("Barrier On not implemented in this version");
 	}
 
 	public void barrierOff() {
+		barrier.off();
 		cd.println("Barrier Off not implemented in this version");
 	}
 
