@@ -67,12 +67,10 @@ class Car extends Thread {
 	// Semaphores
 	HashMap<String, Semaphore> sem;
 	Alley alley;
-	Barrier barrier;
 	
-	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley, Barrier barrier) {
+	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley) {
 		this.sem = sem;
 		this.alley = alley;
-		this.barrier = barrier;
 		this.no = no;
 		this.cd = cd;
 		mygate = g;
@@ -146,12 +144,6 @@ class Car extends Thread {
 				boolean ccEnter = (curpos.row == 1 || curpos.row == 2) && curpos.col == 3;
 				boolean cLeave = curpos.row == 0 && curpos.col == 3;
 				boolean ccLeave = curpos.row == 9 && curpos.col == 1;
-				boolean cBarrier = no >= 5 && curpos.row == 5 && curpos.col >= 3 && curpos.col <= 11;
-				boolean ccBarrier = no <5 && curpos.row == 6 && curpos.col >= 3 && curpos.col <= 11;
-						
-				if (cBarrier || ccBarrier){
-					barrier.sync();
-				}
 				
 				if (cEnter || ccEnter) {
 					alley.enter(no);
@@ -202,126 +194,115 @@ class Alley {
 	
 	public void enter(int no) throws InterruptedException {
 		if (no >= 5) {
-//			System.out.println("Car " + no + " tries to take counterP in enter");
+			System.out.println("Car " + no + " tries to take counterP in enter");
 			counter.P();
-//			System.out.println("Car " + no + " takes counterP in enter");
+			System.out.println("Car " + no + " takes counterP in enter");
 			cCounter++;
-//			System.out.println("Car " + no + " increments cCounter to "+cCounter);
+			System.out.println("Car " + no + " increments cCounter to "+cCounter);
 			if (cCounter == 1) {
-//				System.out.println("Car " + no + " is the first car in alley");
+				System.out.println("Car " + no + " is the first car in alley");
 				counter.V();
-//				System.out.println("Car " + no + " releases counterV in enter");
-//				System.out.println("Car " + no + " tries to take alleyP");
+				System.out.println("Car " + no + " releases counterV in enter");
+				System.out.println("Car " + no + " tries to take alleyP");
 				alley.P();
-//				System.out.println("Car " + no + " takes alleyP");
+				System.out.println("Car " + no + " takes alleyP");
 			} else if (cCounter > 1) {
-//				System.out.println("Car " + no + " is not the first car in alley");
-//				System.out.println("Car " + no + " tries to release counterV in enter");
+				System.out.println("Car " + no + " is not the first car in alley");
+				System.out.println("Car " + no + " tries to release counterV in enter");
 				counter.V();
-//				System.out.println("Car " + no + " releases counterV in enter");
+				System.out.println("Car " + no + " releases counterV in enter");
 			}
 		} else {
-//			System.out.println("Car " + no + " tries to take counterP in enter");
+			System.out.println("Car " + no + " tries to take counterP in enter");
 			counter.P();
-//			System.out.println("Car " + no + " takes counterP in enter");
+			System.out.println("Car " + no + " takes counterP in enter");
 			ccCounter++;
-//			System.out.println("Car " + no + " increments ccCounter to "+ccCounter);
+			System.out.println("Car " + no + " increments ccCounter to "+ccCounter);
 			if (ccCounter == 1) {
-//				System.out.println("Car " + no + " is the first car in alley");
-//				System.out.println("Car " + no + " tries to release counterV in enter");
+				System.out.println("Car " + no + " is the first car in alley");
+				System.out.println("Car " + no + " tries to release counterV in enter");
 				counter.V();
-//				System.out.println("Car " + no + " releases counterV in enter");
-//				System.out.println("Car " + no + " tries to take PairP");
+				System.out.println("Car " + no + " releases counterV in enter");
+				System.out.println("Car " + no + " tries to take PairP");
 				pair.P();
-//				System.out.println("Car " + no + " takes pairP");
-//				System.out.println("Car " + no + " tries to take alleyP");
+				System.out.println("Car " + no + " takes pairP");
+				System.out.println("Car " + no + " tries to take alleyP");
 				alley.P();
-//				System.out.println("Car " + no + " takes alleyP");
-//				System.out.println("Car " + no + " tries to release PairP");
+				System.out.println("Car " + no + " takes alleyP");
+				System.out.println("Car " + no + " tries to release PairP");
 				pair.V();
-//				System.out.println("Car " + no + " releases pairP");
+				System.out.println("Car " + no + " releases pairP");
 			} else if (ccCounter > 1){
-//				System.out.println("Car " + no + " is not the first car in alley");
-//				System.out.println("Car " + no + " tries to release counterV in enter");
+				System.out.println("Car " + no + " is not the first car in alley");
+				System.out.println("Car " + no + " tries to release counterV in enter");
 			    counter.V();
-//				System.out.println("Car " + no + " releases counterV in enter");
-//				System.out.println("Car " + no + " tries to take PairP");
+				System.out.println("Car " + no + " releases counterV in enter");
+				System.out.println("Car " + no + " tries to take PairP");
 				pair.P();
-//				System.out.println("Car " + no + " takes pairP");
-//				System.out.println("Car " + no + " tries to release PairP");
+				System.out.println("Car " + no + " takes pairP");
+				System.out.println("Car " + no + " tries to release PairP");
 			    pair.V();
-//				System.out.println("Car " + no + " releases pairP");
+				System.out.println("Car " + no + " releases pairP");
 			} 
 		}
 	}
 	
 	public void leave(int no) throws InterruptedException {
 		if (no >= 5) {
-//			System.out.println("Car " + no + " tries to take counterP in leave");
+			System.out.println("Car " + no + " tries to take counterP in leave");
 			counter.P();
-//			System.out.println("Car " + no + " takes counterP in leave");
+			System.out.println("Car " + no + " takes counterP in leave");
 			cCounter--;
-//			System.out.println("Car " + no + " decrements cCounter to "+cCounter);
+			System.out.println("Car " + no + " decrements cCounter to "+cCounter);
 			if (cCounter == 0) {
-//				System.out.println("Car " + no + " is the last car to leave alley");
-//				System.out.println("Car " + no + " tries to release alleyV");
+				System.out.println("Car " + no + " is the last car to leave alley");
+				System.out.println("Car " + no + " tries to release alleyV");
 				alley.V();
-//				System.out.println("Car " + no + " releases alley");
+				System.out.println("Car " + no + " releases alley");
 			}
-//			System.out.println("Car " + no + " tries to release counterP in leave");
+			System.out.println("Car " + no + " tries to release counterP in leave");
 			counter.V();
-//			System.out.println("Car " + no + " releases counter in leave");
+			System.out.println("Car " + no + " releases counter in leave");
 		} else {
-//			System.out.println("Car " + no + " tries to take counterP in leave");
+			System.out.println("Car " + no + " tries to take counterP in leave");
 			counter.P();
-//			System.out.println("Car " + no + " takes counterP in leave");
+			System.out.println("Car " + no + " takes counterP in leave");
 			ccCounter--;
-//			System.out.println("Car " + no + " decrements ccCounter to "+ccCounter);
+			System.out.println("Car " + no + " decrements ccCounter to "+ccCounter);
 			if (ccCounter == 0) {
-//				System.out.println("Car " + no + " is the last car to leave alley");
-//				System.out.println("Car " + no + " tries to release alleyV");
+				System.out.println("Car " + no + " is the last car to leave alley");
+				System.out.println("Car " + no + " tries to release alleyV");
 				alley.V();
-//				System.out.println("Car " + no + " releases alley");
+				System.out.println("Car " + no + " releases alley");
 			}
-//			System.out.println("Car " + no + " tries to release counterP in leave");
+			System.out.println("Car " + no + " tries to release counterP in leave");
 			counter.V();
-//			System.out.println("Car " + no + " releases counter in leave");
+			System.out.println("Car " + no + " releases counter in leave");
 		}
 	}
 }
 
 class Barrier {
 	private Boolean status;
+	private int[] arrive;
 	private int N = 9;
-	private int counter;
-	private Semaphore barrier1;
-	private Semaphore barrier2;
 	
 	public Barrier (){
 		status = false;
-		counter = 0;
-		barrier1 = new Semaphore(0);
-		barrier2 = new Semaphore(0);
+		arrive = new int[N];
 	}
 	
-	public void sync() throws InterruptedException {
+	public void sync(int i) throws InterruptedException {
 		if(status){
-			counter++;
-			if (counter == N){
-				for(int i = 0; i<N; i++){
-					barrier1.V();
+			for (int s = 1; s<=3; s++){
+				arrive[i]++;
+				int j = (i + (int) Math.pow(2, s-1))%N;
+				while(arrive[j] < arrive[i]){
+					if(!status){
+						break;
+					}
 				}
 			}
-			barrier1.P();
-
-			
-			counter--;
-			if (counter == 0){
-				for(int i = 0; i<N; i++){
-					barrier2.V();
-				}
-			}
-			barrier2.P();
 		}
 	}
 	
@@ -331,13 +312,6 @@ class Barrier {
 		
 	public void off() {
 		status = false;
-		counter = 0;
-		for(int i = 0; i<N; i++){
-			barrier1.V();
-			barrier2.V();
-		}
-		barrier1 = new Semaphore(0);
-		barrier2 = new Semaphore(0);
 	}
 	
 }
@@ -350,7 +324,6 @@ public class CarControl implements CarControlI {
 
 	HashMap<String, Semaphore> sem;
 	Alley alley;
-	Barrier barrier;
 	
 	public CarControl(CarDisplayI cd) {
 		this.cd = cd;
@@ -358,7 +331,6 @@ public class CarControl implements CarControlI {
 		gate = new Gate[9];
 		sem = new HashMap<>();
 		alley = new Alley();
-		barrier = new Barrier();
 		
 		for (int i = 0; i < 11; i++) {
 			for (int j = 0; j < 12; j++) {
@@ -369,7 +341,7 @@ public class CarControl implements CarControlI {
 
 		for (int no = 0; no < 9; no++) {
 			gate[no] = new Gate();
-			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
+			car[no] = new Car(no, cd, gate[no], sem, alley);
 			car[no].start();
 		}
 
@@ -384,12 +356,10 @@ public class CarControl implements CarControlI {
 	}
 
 	public void barrierOn() {
-		barrier.on();
 		cd.println("Barrier On not implemented in this version");
 	}
 
 	public void barrierOff() {
-		barrier.off();
 		cd.println("Barrier Off not implemented in this version");
 	}
 
