@@ -6,6 +6,7 @@
 
 import java.awt.Color;
 import java.util.HashMap;
+import java.util.concurrent.locks.LockSupport;
 
 class Gate {
 
@@ -152,7 +153,7 @@ class Car extends Thread {
 				if (cBarrier || ccBarrier){
 					barrier.sync();
 				}
-				
+
 				if (cEnter || ccEnter) {
 					alley.enter(no);
 				} else if (cLeave || ccLeave) {
@@ -293,51 +294,77 @@ class Alley {
 class Barrier {
 	private Boolean status;
 	private int N = 9;
-	private int counter;
+	private volatile int counter;
 	private Semaphore barrier1;
 	private Semaphore barrier2;
+	private Semaphore lock;
 	
 	public Barrier (){
 		status = false;
 		counter = 0;
 		barrier1 = new Semaphore(0);
 		barrier2 = new Semaphore(0);
+		lock = new Semaphore(1);
 	}
 	
 	public void sync() throws InterruptedException {
 		if(status){
+			System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", before incrementing");
+			lock.P();
 			counter++;
+			System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", incremented + if counter==N");
 			if (counter == N){
+				lock.V();
+				System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", counter==N");
+				barrier2 = new Semaphore(0);
+				System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", barrier2 reset");
 				for(int i = 0; i<N; i++){
+					System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", barrier1.V");
 					barrier1.V();
 				}
+			} else {
+				lock.V();
 			}
+			System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", waiting barrier1");
 			barrier1.P();
-
-			
+			System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", barrier1P");
+			System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", before decrementing");
+			lock.P();
 			counter--;
+			System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", decremented + if counter==0");
 			if (counter == 0){
+				lock.V();
+				System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", counter==0");
+				barrier1 = new Semaphore(0);
+				System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", barrier1 reset");
 				for(int i = 0; i<N; i++){
+					System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", barrier2.V");
 					barrier2.V();
 				}
+			} else {
+				lock.V();
 			}
+			System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", waiting barrier2");
 			barrier2.P();
+			System.out.println("counter: "+counter+", barrier1: "+barrier1.toString()+", barrier2: "+barrier2.toString()+", barrier2P");
 		}
 	}
 	
 	public void on() {
 		status = true;
+		counter = 0;
+		barrier1 = new Semaphore(0);
+		barrier2 = new Semaphore(0);
 	}
 		
 	public void off() {
 		status = false;
-		counter = 0;
+		//Signal all
 		for(int i = 0; i<N; i++){
 			barrier1.V();
 			barrier2.V();
-		}
-		barrier1 = new Semaphore(0);
-		barrier2 = new Semaphore(0);
+		}		
+		System.out.println("off barrier1: "+barrier1.toString()+" barrier2:"+barrier2.toString());
 	}
 	
 }
