@@ -1,5 +1,7 @@
-/Car$Alley.class
-/Car$CarControl.class
+/Window$WindowCloser.class
+/Window.class
 /Alley.class
-/CarControl.class
 /Barrier.class
+/Car.class
+/CarControl.class
+/Gate.class

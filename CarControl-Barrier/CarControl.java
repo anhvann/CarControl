@@ -6,7 +6,6 @@
 
 import java.awt.Color;
 import java.util.HashMap;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.LockSupport;
 
 class Gate {
@@ -202,41 +201,93 @@ class Alley {
 		ccCounter = 0;
 	}
 	
-	public synchronized void enter(int i){
-		if (i<5){
-			while(cCounter>0){
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-			ccCounter++;
-		} else {
-			while(ccCounter>0){
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
+	public void enter(int no) throws InterruptedException {
+		if (no >= 5) {
+//			System.out.println("Car " + no + " tries to take counterP in enter");
+			counter.P();
+//			System.out.println("Car " + no + " takes counterP in enter");
 			cCounter++;
+//			System.out.println("Car " + no + " increments cCounter to "+cCounter);
+			if (cCounter == 1) {
+//				System.out.println("Car " + no + " is the first car in alley");
+				counter.V();
+//				System.out.println("Car " + no + " releases counterV in enter");
+//				System.out.println("Car " + no + " tries to take alleyP");
+				alley.P();
+//				System.out.println("Car " + no + " takes alleyP");
+			} else if (cCounter > 1) {
+//				System.out.println("Car " + no + " is not the first car in alley");
+//				System.out.println("Car " + no + " tries to release counterV in enter");
+				counter.V();
+//				System.out.println("Car " + no + " releases counterV in enter");
+			}
+		} else {
+//			System.out.println("Car " + no + " tries to take counterP in enter");
+			counter.P();
+//			System.out.println("Car " + no + " takes counterP in enter");
+			ccCounter++;
+//			System.out.println("Car " + no + " increments ccCounter to "+ccCounter);
+			if (ccCounter == 1) {
+//				System.out.println("Car " + no + " is the first car in alley");
+//				System.out.println("Car " + no + " tries to release counterV in enter");
+				counter.V();
+//				System.out.println("Car " + no + " releases counterV in enter");
+//				System.out.println("Car " + no + " tries to take PairP");
+				pair.P();
+//				System.out.println("Car " + no + " takes pairP");
+//				System.out.println("Car " + no + " tries to take alleyP");
+				alley.P();
+//				System.out.println("Car " + no + " takes alleyP");
+//				System.out.println("Car " + no + " tries to release PairP");
+				pair.V();
+//				System.out.println("Car " + no + " releases pairP");
+			} else if (ccCounter > 1){
+//				System.out.println("Car " + no + " is not the first car in alley");
+//				System.out.println("Car " + no + " tries to release counterV in enter");
+			    counter.V();
+//				System.out.println("Car " + no + " releases counterV in enter");
+//				System.out.println("Car " + no + " tries to take PairP");
+				pair.P();
+//				System.out.println("Car " + no + " takes pairP");
+//				System.out.println("Car " + no + " tries to release PairP");
+			    pair.V();
+//				System.out.println("Car " + no + " releases pairP");
+			} 
 		}
 	}
 	
-	public synchronized void leave(int i){
-		if (i<5){
-			ccCounter--;
-			if (ccCounter==0){
-				notifyAll();
-			}
-		} else {
+	public void leave(int no) throws InterruptedException {
+		if (no >= 5) {
+//			System.out.println("Car " + no + " tries to take counterP in leave");
+			counter.P();
+//			System.out.println("Car " + no + " takes counterP in leave");
 			cCounter--;
-			if (cCounter==0){
-				notifyAll();
+//			System.out.println("Car " + no + " decrements cCounter to "+cCounter);
+			if (cCounter == 0) {
+//				System.out.println("Car " + no + " is the last car to leave alley");
+//				System.out.println("Car " + no + " tries to release alleyV");
+				alley.V();
+//				System.out.println("Car " + no + " releases alley");
 			}
+//			System.out.println("Car " + no + " tries to release counterP in leave");
+			counter.V();
+//			System.out.println("Car " + no + " releases counter in leave");
+		} else {
+//			System.out.println("Car " + no + " tries to take counterP in leave");
+			counter.P();
+//			System.out.println("Car " + no + " takes counterP in leave");
+			ccCounter--;
+//			System.out.println("Car " + no + " decrements ccCounter to "+ccCounter);
+			if (ccCounter == 0) {
+//				System.out.println("Car " + no + " is the last car to leave alley");
+//				System.out.println("Car " + no + " tries to release alleyV");
+				alley.V();
+//				System.out.println("Car " + no + " releases alley");
+			}
+//			System.out.println("Car " + no + " tries to release counterP in leave");
+			counter.V();
+//			System.out.println("Car " + no + " releases counter in leave");
 		}
-		
 	}
 }
 
@@ -244,47 +295,65 @@ class Barrier {
 	private Boolean barrierOn;
 	private int N = 9;
 	private volatile int counter;
-	private boolean ready;
+	private Semaphore barrier1;
+	private Semaphore barrier2;
+	private Semaphore lock;
 	
 	public Barrier (){
 		barrierOn = false;
 		counter = 0;
-		ready = false;
+		barrier1 = new Semaphore(0);
+		barrier2 = new Semaphore(0);
+		lock = new Semaphore(1);
 	}
 	
-	public synchronized void sync() {
+	public void sync() throws InterruptedException {
 		if(barrierOn){
-			while(ready){
-				try { wait();	} catch (InterruptedException e) {;}
-			}
+			lock.P();
 			counter++;
-			System.out.println(counter+" "+ready);
 			if (counter == N){
-				ready = true;
-				notifyAll();
+				lock.V();
+				barrier2 = new Semaphore(0);
+				for(int i = 0; i<N; i++){
+					barrier1.V();
+				}
+			} else {
+				lock.V();
 			}
-			
-			while(!ready){
-				try { wait();	} catch (InterruptedException e) {;}
-			}
+			barrier1.P();
+			lock.P();
 			counter--;
-			System.out.println(counter+" "+ready);
-			if(counter == 0){
-				ready = false;
-				notifyAll();
-				System.out.println("notified "+counter+" "+ready);
+			if (counter == 0){
+				lock.V();
+				barrier1 = new Semaphore(0);
+				for(int i = 0; i<N; i++){
+					barrier2.V();
+				}
+			} else {
+				lock.V();
 			}
+			barrier2.P();
 		}
 	}
 	
-	public synchronized void on() {
-		barrierOn = true;
+	public void on() {
+		if(!barrierOn){
+			barrierOn = true;
+			counter = 0;
+			barrier1 = new Semaphore(0);
+			barrier2 = new Semaphore(0);
+		}
 	}
 		
-	public synchronized void off() {
-		barrierOn = false;
-		ready = true;
-		notifyAll();
+	public void off() {
+		if(barrierOn){
+			barrierOn = false;
+			//Signal all
+			for(int i = 0; i<N; i++){
+				barrier1.V();
+				barrier2.V();
+			}		
+		}
 	}
 	
 }
