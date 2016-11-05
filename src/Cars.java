@@ -210,7 +210,7 @@ class Tile extends JPanel {
         }
 
         if (users < 0) {
-        	System.out.println("Users : " + users);
+        	//System.out.println("Users : " + users);
         	g.setColor(Color.yellow); 
             g.fillRect(0,0,edge,edge);
         }

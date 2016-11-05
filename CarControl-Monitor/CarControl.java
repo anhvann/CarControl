@@ -6,8 +6,6 @@
 
 import java.awt.Color;
 import java.util.HashMap;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.LockSupport;
 
 class Gate {
 
