@@ -186,16 +186,10 @@ class Car extends Thread {
 
 class Alley {
 	
-	Semaphore alley;
-	Semaphore pair;
-	Semaphore counter;
 	volatile int cCounter; //clockwise counter
 	volatile int ccCounter; //counter-clockwise counter
 	
 	public Alley() {
-		this.alley = new Semaphore(1);
-		this.pair = new Semaphore(1);
-		this.counter = new Semaphore(1);
 		cCounter = 0;
 		ccCounter = 0;
 	}
@@ -256,7 +250,6 @@ class Barrier {
 				try { wait();	} catch (InterruptedException e) {;}
 			}
 			counter++;
-			System.out.println(counter+" "+ready);
 			if (counter == N){
 				ready = true;
 				notifyAll();
@@ -266,11 +259,9 @@ class Barrier {
 				try { wait();	} catch (InterruptedException e) {;}
 			}
 			counter--;
-			System.out.println(counter+" "+ready);
 			if(counter == 0){
 				ready = false;
 				notifyAll();
-				System.out.println("notified "+counter+" "+ready);
 			}
 		}
 	}

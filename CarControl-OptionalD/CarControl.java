@@ -257,9 +257,9 @@ class Alley {
 
 class Barrier {
 	private Boolean barrierOn;
-	volatile int counter;
+	private int N = 9;
+	private volatile int counter;
 	private boolean ready;
-	int N = 9;
 	
 	public Barrier (){
 		barrierOn = false;
@@ -270,17 +270,16 @@ class Barrier {
 	public synchronized void sync() {
 		if(barrierOn){
 			while(ready){
-				try { System.out.println("wait")	; wait();} catch (InterruptedException e) {;}
+				try { wait();	} catch (InterruptedException e) {;}
 			}
 			counter++;
-			System.out.println(counter);
 			if (counter == N){
 				ready = true;
 				notifyAll();
 			}
 			
 			while(!ready){
-				try { System.out.println("wait2");wait();} catch (InterruptedException e) {;}
+				try { wait();	} catch (InterruptedException e) {;}
 			}
 			counter--;
 			if(counter == 0){
@@ -300,20 +299,6 @@ class Barrier {
 		notifyAll();
 	}
 	
-	public synchronized void release(int k) {
-		if (k <= N){
-			N = k;
-			if(counter>=N){
-				for(int i = 0; i<N; i++){
-					ready= true;
-					System.out.println("notify, left: "+counter);
-					notify();
-				}
-			}
-		} else {
-
-		}
-	}
 }
 
 public class CarControl implements CarControlI {
@@ -326,12 +311,11 @@ public class CarControl implements CarControlI {
 	Alley alley;
 	Alley alley2;
 	Barrier barrier;
-	int N = 9;
 	
 	public CarControl(CarDisplayI cd) {
 		this.cd = cd;
-		car = new Car[N];
-		gate = new Gate[N];
+		car = new Car[9];
+		gate = new Gate[9];
 		sem = new HashMap<>();
 		alley = new Alley();
 		alley2 = new Alley();
@@ -368,18 +352,13 @@ public class CarControl implements CarControlI {
 		barrier.off();
 	}
 
-	public synchronized void barrierSet(int k) {
-		if(k<=barrier.N){
-			barrier.release(k);
-		} else {
-			while(barrier.counter!=0){
-				try {
-					Thread.sleep(3000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
+	public void barrierSet(int k) {
+		cd.println("Barrier threshold setting not implemented in this version");
+		// This sleep is for illustrating how blocking affects the GUI
+		// Remove when feature is properly implemented.
+		try {
+			Thread.sleep(3000);
+		} catch (InterruptedException e) {
 		}
 	}
 
