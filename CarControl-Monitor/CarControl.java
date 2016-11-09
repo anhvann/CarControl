@@ -194,9 +194,9 @@ class Alley {
 		ccCounter = 0;
 	}
 	
-	public synchronized void enter(int i){
-		if (i<5){
-			while(cCounter>0){
+	public synchronized void enter(int no){
+		if (no < 5){
+			while(cCounter > 0){
 				try {
 					wait();
 				} catch (InterruptedException e) {
@@ -205,7 +205,7 @@ class Alley {
 			}
 			ccCounter++;
 		} else {
-			while(ccCounter>0){
+			while(ccCounter > 0){
 				try {
 					wait();
 				} catch (InterruptedException e) {
@@ -216,15 +216,15 @@ class Alley {
 		}
 	}
 	
-	public synchronized void leave(int i){
-		if (i<5){
+	public synchronized void leave(int no){
+		if (no < 5){
 			ccCounter--;
-			if (ccCounter==0){
+			if (ccCounter == 0){
 				notifyAll();
 			}
 		} else {
 			cCounter--;
-			if (cCounter==0){
+			if (cCounter == 0){
 				notifyAll();
 			}
 		}

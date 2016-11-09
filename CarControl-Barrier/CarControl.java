@@ -202,55 +202,26 @@ class Alley {
 	
 	public void enter(int no) throws InterruptedException {
 		if (no >= 5) {
-//			System.out.println("Car " + no + " tries to take counterP in enter");
 			counter.P();
-//			System.out.println("Car " + no + " takes counterP in enter");
 			cCounter++;
-//			System.out.println("Car " + no + " increments cCounter to "+cCounter);
 			if (cCounter == 1) {
-//				System.out.println("Car " + no + " is the first car in alley");
 				counter.V();
-//				System.out.println("Car " + no + " releases counterV in enter");
-//				System.out.println("Car " + no + " tries to take alleyP");
 				alley.P();
-//				System.out.println("Car " + no + " takes alleyP");
 			} else if (cCounter > 1) {
-//				System.out.println("Car " + no + " is not the first car in alley");
-//				System.out.println("Car " + no + " tries to release counterV in enter");
 				counter.V();
-//				System.out.println("Car " + no + " releases counterV in enter");
 			}
 		} else {
-//			System.out.println("Car " + no + " tries to take counterP in enter");
 			counter.P();
-//			System.out.println("Car " + no + " takes counterP in enter");
 			ccCounter++;
-//			System.out.println("Car " + no + " increments ccCounter to "+ccCounter);
 			if (ccCounter == 1) {
-//				System.out.println("Car " + no + " is the first car in alley");
-//				System.out.println("Car " + no + " tries to release counterV in enter");
 				counter.V();
-//				System.out.println("Car " + no + " releases counterV in enter");
-//				System.out.println("Car " + no + " tries to take PairP");
 				pair.P();
-//				System.out.println("Car " + no + " takes pairP");
-//				System.out.println("Car " + no + " tries to take alleyP");
 				alley.P();
-//				System.out.println("Car " + no + " takes alleyP");
-//				System.out.println("Car " + no + " tries to release PairP");
 				pair.V();
-//				System.out.println("Car " + no + " releases pairP");
 			} else if (ccCounter > 1){
-//				System.out.println("Car " + no + " is not the first car in alley");
-//				System.out.println("Car " + no + " tries to release counterV in enter");
 			    counter.V();
-//				System.out.println("Car " + no + " releases counterV in enter");
-//				System.out.println("Car " + no + " tries to take PairP");
 				pair.P();
-//				System.out.println("Car " + no + " takes pairP");
-//				System.out.println("Car " + no + " tries to release PairP");
 			    pair.V();
-//				System.out.println("Car " + no + " releases pairP");
 			} 
 		}
 	}
