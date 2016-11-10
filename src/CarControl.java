@@ -64,10 +64,11 @@ class Car extends Thread {
 	Pos curpos; // Current position
 	Pos newpos; // New position to go to
 
-	// Semaphores
 	HashMap<String, Semaphore> sem;
 	Alley alley;
 	Barrier barrier;
+	Semaphore move;
+	boolean inAlley;
 	
 	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley, Barrier barrier) {
 		this.sem = sem;
@@ -75,6 +76,8 @@ class Car extends Thread {
 		this.barrier = barrier;
 		this.no = no;
 		this.cd = cd;
+		this.move = new Semaphore(1);
+		this.inAlley = false;
 		mygate = g;
 		startpos = cd.getStartPos(no);
 		barpos = cd.getBarrierPos(no); // For later use
@@ -154,31 +157,34 @@ class Car extends Thread {
 				}
 
 				if (cEnter || ccEnter) {
+					inAlley = true;
 					alley.enter(no);
 				} else if (cLeave || ccLeave) {
 					alley.leave(no);
+					inAlley = false;
 				}
-				
+
 				sem.get(nextPos(curpos).toString()).P();
 				newpos = nextPos(curpos);
 
 				// Move to new position
+				move.P();
 				cd.clear(curpos);
-				cd.mark(curpos, newpos, col, no);
+				//cd.mark(curpos, newpos, col, no);
 				sleep(speed());
 				cd.clear(curpos, newpos);
 				cd.mark(newpos, col, no);
 
 				sem.get(curpos.toString()).V();
 				curpos = newpos;
+				move.V();
 			}
 
-		} catch (
-
-		Exception e) {
-			cd.println("Exception in Car no. " + no);
-			System.err.println("Exception in Car no. " + no + ":" + e);
-			e.printStackTrace();
+		} catch (Exception e) {
+			//TODO Interrupted
+			//cd.println("Exception in Car no. " + no);
+			//System.err.println("Exception in Car no. " + no + ":" + e);
+			//e.printStackTrace();
 		}
 	}
 
@@ -188,51 +194,35 @@ class Alley {
 	
 	volatile int cCounter; //clockwise counter
 	volatile int ccCounter; //counter-clockwise counter
-	volatile int cStreak; //clockwise alley streaks
-	volatile int ccStreak; //counter-clockwise alley streaks
 	
 	public Alley() {
 		cCounter = 0;
 		ccCounter = 0;
-		cStreak = 0;
-		ccStreak = 0;
 	}
 	
-	public synchronized void enter(int no){
-		if (no < 5){
-			while(cCounter > 0 || ccStreak >= 8){
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+	public synchronized void enter(int i){
+		if (i<5){
+			while(cCounter>0){
+				try {wait();} catch (InterruptedException e) {}
 			}
-			cStreak = 0;
 			ccCounter++;
-			ccStreak++;
 		} else {
-			while(ccCounter > 0 || cStreak >= 8){
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+			while(ccCounter>0){
+				try {wait();} catch (InterruptedException e) {}
 			}
-			ccStreak = 0;
 			cCounter++;
-			cStreak++;
 		}
 	}
 	
-	public synchronized void leave(int no){
-		if (no < 5){
+	public synchronized void leave(int i){
+		if (i<5){
 			ccCounter--;
-			if (ccCounter == 0){
+			if (ccCounter==0){
 				notifyAll();
 			}
 		} else {
 			cCounter--;
-			if (cCounter == 0){
+			if (cCounter==0){
 				notifyAll();
 			}
 		}
@@ -258,6 +248,7 @@ class Barrier {
 				try { wait();	} catch (InterruptedException e) {;}
 			}
 			counter++;
+			System.out.println(counter+" "+ready);
 			if (counter == N){
 				ready = true;
 				notifyAll();
@@ -267,6 +258,7 @@ class Barrier {
 				try { wait();	} catch (InterruptedException e) {;}
 			}
 			counter--;
+			System.out.println(counter+" "+ready);
 			if(counter == 0){
 				ready = false;
 				notifyAll();
@@ -291,15 +283,17 @@ public class CarControl implements CarControlI {
 	CarDisplayI cd; // Reference to GUI
 	Car[] car; // Cars
 	Gate[] gate; // Gates
+	
 
 	HashMap<String, Semaphore> sem;
 	Alley alley;
 	Barrier barrier;
+	int N = 9;
 	
 	public CarControl(CarDisplayI cd) {
 		this.cd = cd;
-		car = new Car[9];
-		gate = new Gate[9];
+		car = new Car[N];
+		gate = new Gate[N];
 		sem = new HashMap<>();
 		alley = new Alley();
 		barrier = new Barrier();
@@ -311,7 +305,7 @@ public class CarControl implements CarControlI {
 			}
 		}
 
-		for (int no = 0; no < 9; no++) {
+		for (int no = 0; no < N; no++) {
 			gate[no] = new Gate();
 			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
 			car[no].start();
@@ -345,12 +339,37 @@ public class CarControl implements CarControlI {
 		}
 	}
 
-	public void removeCar(int no) {
-		cd.println("Remove Car not implemented in this version");
+	public void  removeCar(int no) {
+		if(car[no]!=null){
+			try {
+				//Remove if not moving (between two tiles)
+				car[no].move.P();
+				car[no].interrupt();
+				cd.clear(car[no].curpos);
+				sem.get(car[no].curpos.toString()).V();
+				car[no].move.V();
+				
+				//Remove in alley
+				if (car[no].inAlley){
+					if (no<5){
+						alley.ccCounter--;
+					} else {
+						alley.cCounter--;
+					}
+				}
+				
+				car[no] = null;
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public void restoreCar(int no) {
-		cd.println("Restore Car not implemented in this version");
+		if(car[no] == null){
+			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
+			car[no].start();
+		}
 	}
 
 	/* Speed settings for testing purposes */

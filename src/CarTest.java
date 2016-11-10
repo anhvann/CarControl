@@ -18,22 +18,35 @@ public class CarTest extends Thread {
         try {
             switch (testno) { 
             case 0:
-                // Demonstration of startAll/stopAll.
-                // Should let the cars go one round (unless very fast)
-                cars.startAll();
-                sleep(3000);
-                cars.stopAll();
+            	//Remove car from gate and restore into gate
+            	cars.println("Car 1 and 2 enter the alley once there are no cars in the opposite direction on their path");
+            	cars.removeCar(2);
+            	sleep(1000);
+            	cars.restoreCar(2);
                 break;
 
-            case 19:
-                // Demonstration of speed setting.
-                // Change speed to double of default values
-                cars.println("Doubling speeds");
-                for (int i = 1; i < 9; i++) {
-                    cars.setSpeed(i,50);
-                };
-                break;
+            case 1:
+            	//Remove car and restore immediately
+            	cars.println("Car 1 and 2 enter the alley once there are no cars in the opposite direction on their path");
+            	cars.startCar(2);
+            	cars.removeCar(2);
 
+            	cars.restoreCar(2);
+                break;
+                
+            case 2:
+            	//Remove car from alley and restore into gate
+            	//Cars waiting to enter the alley will not take the removed car into account
+            	cars.println("Car 1 and 2 enter the alley once there are no cars in the opposite direction on their path");
+            	cars.removeCar(2);
+                break;
+                
+            case 3:
+            	//Remove car and cars
+            	cars.println("Car 1 and 2 enter the alley once there are no cars in the opposite direction on their path");
+            	cars.removeCar(2);
+                break;
+                
             default:
                 cars.println("Test " + testno + " not available");
             }
