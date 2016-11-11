@@ -68,6 +68,7 @@ class Car extends Thread {
 	Alley alley;
 	Barrier barrier;
 	Semaphore move;
+	int tile; //0 = in no tile, 1 = in one tile, 2 = in two tiles
 	boolean inAlley;
 	
 	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley, Barrier barrier) {
@@ -77,6 +78,7 @@ class Car extends Thread {
 		this.no = no;
 		this.cd = cd;
 		this.move = new Semaphore(1);
+		this.tile = 1;
 		this.inAlley = false;
 		mygate = g;
 		startpos = cd.getStartPos(no);
@@ -170,11 +172,24 @@ class Car extends Thread {
 				// Move to new position
 				move.P();
 				cd.clear(curpos);
+				tile = 0;
+				move.V();
+				
+				move.P();
 				cd.mark(curpos, newpos, col, no);
+				tile = 2;
+				move.V();
 				sleep(speed());
+				
+				move.P();
 				cd.clear(curpos, newpos);
+				tile = 0;
+				move.V();
+				
+				move.P();
 				cd.mark(newpos, col, no);
-
+				tile = 1;
+				
 				sem.get(curpos.toString()).V();
 				curpos = newpos;
 				move.V();
@@ -232,7 +247,7 @@ class Alley {
 
 class Barrier {
 	private Boolean barrierOn;
-	private int N = 9;
+	private volatile int N = 9;
 	private volatile int counter;
 	private boolean ready;
 	
@@ -245,7 +260,7 @@ class Barrier {
 	public synchronized void sync() {
 		if(barrierOn){
 			while(ready){
-				try { wait();	} catch (InterruptedException e) {;}
+				try { wait();	} catch (InterruptedException e) {}
 			}
 			counter++;
 			System.out.println(counter+" "+ready);
@@ -255,7 +270,7 @@ class Barrier {
 			}
 			
 			while(!ready){
-				try { wait();	} catch (InterruptedException e) {;}
+				try { wait();	} catch (InterruptedException e) {}
 			}
 			counter--;
 			System.out.println(counter+" "+ready);
@@ -274,6 +289,14 @@ class Barrier {
 		barrierOn = false;
 		ready = true;
 		notifyAll();
+	}
+
+	public void decrementN() {
+		N--;
+	}
+
+	public void incrementN() {
+		N++;
 	}
 	
 }
@@ -341,15 +364,18 @@ public class CarControl implements CarControlI {
 
 	public void  removeCar(int no) {
 		if(car[no]!=null){
+			car[no].interrupt();
 			try {
-				//Remove if not moving (between two tiles)
 				car[no].move.P();
-				car[no].interrupt();
-				cd.clear(car[no].curpos);
-				sem.get(car[no].curpos.toString()).V();
-				car[no].move.V();
-				
-				//Remove in alley
+				if(car[no].tile == 1){
+					cd.clear(car[no].curpos);
+					sem.get(car[no].curpos.toString()).V();
+				} else if (car[no].tile == 2){
+					cd.clear(car[no].curpos, car[no].newpos);
+					sem.get(car[no].nextPos(car[no].curpos).toString()).V();
+				} else {
+					sem.get(car[no].nextPos(car[no].curpos).toString()).V();
+				}
 				if (car[no].inAlley){
 					if (no<5){
 						alley.ccCounter--;
@@ -357,8 +383,10 @@ public class CarControl implements CarControlI {
 						alley.cCounter--;
 					}
 				}
-				
+				car[no].move.V();
+				barrier.decrementN();
 				car[no] = null;
+				
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -368,6 +396,7 @@ public class CarControl implements CarControlI {
 	public void restoreCar(int no) {
 		if(car[no] == null){
 			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
+			barrier.incrementN();
 			car[no].start();
 		}
 	}
