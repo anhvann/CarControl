@@ -227,6 +227,7 @@ class Car extends Thread {
 				alley.cCounter--;
 			}
 		}
+		alley.update();
 		
 		if(atBarrier){
 			barrier.decrementCounter();
@@ -297,7 +298,14 @@ class Alley {
 				notifyAll();
 			}
 		}
-		
+	}
+	public synchronized void update(){
+		if (ccCounter==0){
+			notifyAll();
+		}
+		if (cCounter==0){
+			notifyAll();
+		}
 	}
 }
 
@@ -377,7 +385,6 @@ class Barrier {
 	}
 	
 	public synchronized void update() {
-		System.out.println("COUNTER "+counter+", N "+N+", ready "+ready);
 		if (counter == N){
 			ready = true;
 		}
@@ -389,7 +396,6 @@ class Barrier {
 	
 	public synchronized void decrementCounter() {
 		counter--;
-		System.out.println("COUNTER "+counter+", N "+N+", ready "+ready);
 		notifyAll();
 	}
 }
