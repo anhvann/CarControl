@@ -263,7 +263,6 @@ class Barrier {
 				try { wait();	} catch (InterruptedException e) {}
 			}
 			counter++;
-			System.out.println(counter+" "+ready);
 			if (counter == N){
 				ready = true;
 				notifyAll();
@@ -273,7 +272,6 @@ class Barrier {
 				try { wait();	} catch (InterruptedException e) {}
 			}
 			counter--;
-			System.out.println(counter+" "+ready);
 			if(counter == 0){
 				ready = false;
 				notifyAll();
