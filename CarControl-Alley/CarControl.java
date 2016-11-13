@@ -64,11 +64,10 @@ class Car extends Thread {
 	Pos curpos; // Current position
 	Pos newpos; // New position to go to
 
-	// Semaphores
-	HashMap<String, Semaphore> sem;
+	Semaphore[][] sem;
 	Alley alley;
 	
-	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley) {
+	public Car(int no, CarDisplayI cd, Gate g, Semaphore[][] sem, Alley alley) {
 		this.sem = sem;
 		this.alley = alley;
 		this.no = no;
@@ -142,7 +141,7 @@ class Car extends Thread {
 				
 				boolean cEnter = curpos.row == 10 && curpos.col == 0;
 				boolean ccEnter = (curpos.row == 1 || curpos.row == 2) && curpos.col == 3;
-				boolean cLeave = curpos.row == 0 && curpos.col == 3;
+				boolean cLeave = curpos.row == 0 && curpos.col == 2;
 				boolean ccLeave = curpos.row == 9 && curpos.col == 1;
 				
 				if (cEnter || ccEnter) {
@@ -151,9 +150,9 @@ class Car extends Thread {
 					alley.leave(no);
 				}
 				
-				sem.get(nextPos(curpos).toString()).P();
 				newpos = nextPos(curpos);
-
+				sem[newpos.row][newpos.col].P();
+				
 				// Move to new position
 				cd.clear(curpos);
 				cd.mark(curpos, newpos, col, no);
@@ -161,7 +160,7 @@ class Car extends Thread {
 				cd.clear(curpos, newpos);
 				cd.mark(newpos, col, no);
 
-				sem.get(curpos.toString()).V();
+				sem[curpos.row][curpos.col].V();
 				curpos = newpos;
 			}
 
@@ -178,61 +177,61 @@ class Car extends Thread {
 
 class Alley {
 	
-	Semaphore alley;
-	Semaphore pair;
-	Semaphore counter;
+	private Semaphore alley;
+	private Semaphore first;
+	private Semaphore mutex;
 	volatile int cCounter; //clockwise counter
 	volatile int ccCounter; //counter-clockwise counter
 	
 	public Alley() {
 		this.alley = new Semaphore(1);
-		this.pair = new Semaphore(1);
-		this.counter = new Semaphore(1);
+		this.first = new Semaphore(1);
+		this.mutex = new Semaphore(1);
 		cCounter = 0;
 		ccCounter = 0;
 	}
 	
 	public void enter(int no) throws InterruptedException {
-		if (no >= 5) {
-			counter.P();
+		if (no >= 5) { //clockwise
+			mutex.P();
 			cCounter++;
 			if (cCounter == 1) {
-				counter.V();
+				mutex.V();
 				alley.P();
 			} else if (cCounter > 1) {
-				counter.V();
+				mutex.V();
 			}
-		} else {
-			counter.P();
+		} else { //counter-clockwise
+			mutex.P();
 			ccCounter++;
 			if (ccCounter == 1) {
-				counter.V();
-				pair.P();
+				mutex.V();
+				first.P();
 				alley.P();
-				pair.V();
+				first.V();
 			} else if (ccCounter > 1){
-			    counter.V();
-				pair.P();
-			    pair.V();
+				mutex.V();
+				first.P();
+				first.V();
 			} 
 		}
 	}
 	
 	public void leave(int no) throws InterruptedException {
 		if (no >= 5) {
-			counter.P();
+			mutex.P();
 			cCounter--;
 			if (cCounter == 0) {
 				alley.V();
 			}
-			counter.V();
+			mutex.V();
 		} else {
-			counter.P();
+			mutex.P();
 			ccCounter--;
 			if (ccCounter == 0) {
 				alley.V();
 			}
-			counter.V();
+			mutex.V();
 		}
 	}
 }
@@ -277,20 +276,21 @@ public class CarControl implements CarControlI {
 	Car[] car; // Cars
 	Gate[] gate; // Gates
 
-	HashMap<String, Semaphore> sem;
+	Semaphore[][] sem;
+	int row = 11;
+	int col = 12;
 	Alley alley;
 	
 	public CarControl(CarDisplayI cd) {
 		this.cd = cd;
 		car = new Car[9];
 		gate = new Gate[9];
-		sem = new HashMap<>();
+		sem = new Semaphore[row][col];
 		alley = new Alley();
 		
-		for (int i = 0; i < 11; i++) {
-			for (int j = 0; j < 12; j++) {
-				Pos p = new Pos(i, j);
-				sem.put(p.toString(), new Semaphore(1));
+		for (int i = 0; i < row; i++) {
+			for (int j = 0; j < col; j++) {
+				sem[i][j] = new Semaphore(1);
 			}
 		}
 

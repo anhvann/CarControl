@@ -64,12 +64,11 @@ class Car extends Thread {
 	Pos curpos; // Current position
 	Pos newpos; // New position to go to
 
-	// Semaphores
-	HashMap<String, Semaphore> sem;
+	Semaphore[][] sem;
 	Alley alley;
 	Barrier barrier;
 	
-	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley, Barrier barrier) {
+	public Car(int no, CarDisplayI cd, Gate g, Semaphore[][] sem, Alley alley, Barrier barrier) {
 		this.sem = sem;
 		this.alley = alley;
 		this.barrier = barrier;
@@ -144,7 +143,7 @@ class Car extends Thread {
 				
 				boolean cEnter = curpos.row == 10 && curpos.col == 0;
 				boolean ccEnter = (curpos.row == 1 || curpos.row == 2) && curpos.col == 3;
-				boolean cLeave = curpos.row == 0 && curpos.col == 3;
+				boolean cLeave = curpos.row == 0 && curpos.col == 2;
 				boolean ccLeave = curpos.row == 9 && curpos.col == 1;
 				boolean cBarrier = no >= 5 && curpos.row == 5 && curpos.col >= 3 && curpos.col <= 11;
 				boolean ccBarrier = no <5 && curpos.row == 6 && curpos.col >= 3 && curpos.col <= 11;
@@ -159,8 +158,8 @@ class Car extends Thread {
 					alley.leave(no);
 				}
 				
-				sem.get(nextPos(curpos).toString()).P();
 				newpos = nextPos(curpos);
+				sem[newpos.row][newpos.col].P();
 
 				// Move to new position
 				cd.clear(curpos);
@@ -169,7 +168,7 @@ class Car extends Thread {
 				cd.clear(curpos, newpos);
 				cd.mark(newpos, col, no);
 
-				sem.get(curpos.toString()).V();
+				sem[curpos.row][curpos.col].V();
 				curpos = newpos;
 			}
 
@@ -292,7 +291,9 @@ public class CarControl implements CarControlI {
 	Car[] car; // Cars
 	Gate[] gate; // Gates
 
-	HashMap<String, Semaphore> sem;
+	Semaphore[][] sem;
+	int row = 11;
+	int col = 12;
 	Alley alley;
 	Barrier barrier;
 	
@@ -300,14 +301,13 @@ public class CarControl implements CarControlI {
 		this.cd = cd;
 		car = new Car[9];
 		gate = new Gate[9];
-		sem = new HashMap<>();
+		sem = new Semaphore[row][col];
 		alley = new Alley();
 		barrier = new Barrier();
 		
-		for (int i = 0; i < 11; i++) {
-			for (int j = 0; j < 12; j++) {
-				Pos p = new Pos(i, j);
-				sem.put(p.toString(), new Semaphore(1));
+		for (int i = 0; i < row; i++) {
+			for (int j = 0; j < col; j++) {
+				sem[i][j] = new Semaphore(1);
 			}
 		}
 

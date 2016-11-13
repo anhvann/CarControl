@@ -62,10 +62,8 @@ public class CarTest extends Thread {
             	//Remove car from alley and restore into gate
             	//Cars waiting to enter the alley will not take the removed car into account
             	cars.println("Car is removed from alley");
-            	cars.setSlow(true);
-            	cars.setSpeed(2, 50);
             	cars.startAll();
-            	sleep(2000);
+            	sleep(3000);
             	cars.removeCar(2);
                 break;
                 

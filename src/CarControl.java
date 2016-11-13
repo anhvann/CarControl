@@ -64,24 +64,22 @@ class Car extends Thread {
 	Pos curpos; // Current position
 	Pos newpos; // New position to go to
 
-	HashMap<String, Semaphore> sem;
+	Semaphore[][] sem;
 	Alley alley;
 	Barrier barrier;
 	Semaphore move;
 	int tile; //0 = in no tile, 1 = in one tile, 2 = in two tiles
 	boolean inAlley;
-	boolean atBarrier;
 	
-	public Car(int no, CarDisplayI cd, Gate g, HashMap<String, Semaphore> sem, Alley alley, Barrier barrier) {
+	public Car(int no, CarDisplayI cd, Gate g, Semaphore[][] sem, Alley alley, Barrier barrier) {
 		this.sem = sem;
 		this.alley = alley;
 		this.barrier = barrier;
 		this.no = no;
 		this.cd = cd;
-		move = new Semaphore(1);
-		tile = 1;
-		inAlley = false;
-		atBarrier = false;
+		this.move = new Semaphore(1);
+		this.tile = 1;
+		this.inAlley = false;
 		mygate = g;
 		startpos = cd.getStartPos(no);
 		barpos = cd.getBarrierPos(no); // For later use
@@ -151,13 +149,12 @@ class Car extends Thread {
 				
 				boolean cEnter = curpos.row == 10 && curpos.col == 0;
 				boolean ccEnter = (curpos.row == 1 || curpos.row == 2) && curpos.col == 3;
-				boolean cLeave = curpos.row == 0 && curpos.col == 3;
+				boolean cLeave = curpos.row == 0 && curpos.col == 2;
 				boolean ccLeave = curpos.row == 9 && curpos.col == 1;
 				boolean cBarrier = no >= 5 && curpos.row == 5 && curpos.col >= 3 && curpos.col <= 11;
 				boolean ccBarrier = no <5 && curpos.row == 6 && curpos.col >= 3 && curpos.col <= 11;
 						
 				if (cBarrier || ccBarrier){
-					atBarrier = true;
 					barrier.sync();
 				}
 
@@ -169,8 +166,8 @@ class Car extends Thread {
 					inAlley = false;
 				}
 
-				sem.get(nextPos(curpos).toString()).P();
 				newpos = nextPos(curpos);
+				sem[newpos.row][newpos.col].P();
 
 				// Move to new position
 				move.P();
@@ -193,7 +190,7 @@ class Car extends Thread {
 				cd.mark(newpos, col, no);
 				tile = 1;
 				
-				sem.get(curpos.toString()).V();
+				sem[curpos.row][curpos.col].V();
 				curpos = newpos;
 				move.V();
 			}
@@ -251,7 +248,7 @@ class Alley {
 class Barrier {
 	private Boolean barrierOn;
 	private volatile int N = 9;
-	volatile int counter;
+	private volatile int counter;
 	private boolean ready;
 	
 	public Barrier (){
@@ -266,7 +263,7 @@ class Barrier {
 				try { wait();	} catch (InterruptedException e) {}
 			}
 			counter++;
-			System.out.println(counter+" "+ready+" "+N);
+			System.out.println(counter+" "+ready);
 			if (counter == N){
 				ready = true;
 				notifyAll();
@@ -276,7 +273,7 @@ class Barrier {
 				try { wait();	} catch (InterruptedException e) {}
 			}
 			counter--;
-			System.out.println(counter+" "+ready+" "+N);
+			System.out.println(counter+" "+ready);
 			if(counter == 0){
 				ready = false;
 				notifyAll();
@@ -311,7 +308,9 @@ public class CarControl implements CarControlI {
 	Gate[] gate; // Gates
 	
 
-	HashMap<String, Semaphore> sem;
+	Semaphore[][] sem;
+	int row = 11;
+	int col = 12;
 	Alley alley;
 	Barrier barrier;
 	int N = 9;
@@ -320,14 +319,13 @@ public class CarControl implements CarControlI {
 		this.cd = cd;
 		car = new Car[N];
 		gate = new Gate[N];
-		sem = new HashMap<>();
+		sem = new Semaphore[row][col];
 		alley = new Alley();
 		barrier = new Barrier();
 		
-		for (int i = 0; i < 11; i++) {
-			for (int j = 0; j < 12; j++) {
-				Pos p = new Pos(i, j);
-				sem.put(p.toString(), new Semaphore(1));
+		for (int i = 0; i < row; i++) {
+			for (int j = 0; j < col; j++) {
+				sem[i][j] = new Semaphore(1);
 			}
 		}
 
@@ -372,12 +370,14 @@ public class CarControl implements CarControlI {
 				car[no].move.P();
 				if(car[no].tile == 1){
 					cd.clear(car[no].curpos);
-					sem.get(car[no].curpos.toString()).V();
+					sem[car[no].curpos.row][car[no].curpos.col].V();
 				} else if (car[no].tile == 2){
 					cd.clear(car[no].curpos, car[no].newpos);
-					sem.get(car[no].nextPos(car[no].curpos).toString()).V();
+					Pos next = car[no].nextPos(car[no].curpos);
+					sem[next.row][next.col].V();
 				} else {
-					sem.get(car[no].nextPos(car[no].curpos).toString()).V();
+					Pos next = car[no].nextPos(car[no].curpos);
+					sem[next.row][next.col].V();
 				}
 				if (car[no].inAlley){
 					if (no<5){
@@ -385,10 +385,6 @@ public class CarControl implements CarControlI {
 					} else {
 						alley.cCounter--;
 					}
-				}
-				
-				if(car[no].atBarrier){
-					barrier.counter--;
 				}
 				car[no].move.V();
 				barrier.decrementN();
