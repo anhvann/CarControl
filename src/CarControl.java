@@ -189,8 +189,8 @@ class Car extends Thread {
 				move.P();
 				cd.mark(newpos, col, no);
 				tile = 1;
-				
 				sem[curpos.row][curpos.col].V();
+
 				curpos = newpos;
 				move.V();
 			}
@@ -375,9 +375,11 @@ public class CarControl implements CarControlI {
 					cd.clear(car[no].curpos, car[no].newpos);
 					Pos next = car[no].nextPos(car[no].curpos);
 					sem[next.row][next.col].V();
+					sem[car[no].curpos.row][car[no].curpos.col].V();
 				} else {
 					Pos next = car[no].nextPos(car[no].curpos);
 					sem[next.row][next.col].V();
+					sem[car[no].curpos.row][car[no].curpos.col].V();
 				}
 				if (car[no].inAlley){
 					if (no<5){
