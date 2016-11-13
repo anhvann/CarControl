@@ -71,7 +71,6 @@ class Car extends Thread {
 	int tile; //0 = in no tile, 1 = in one tile, 2 = in two tiles
 	public boolean inAlley;
 	public boolean isRemoved;
-	public boolean atBarrier;
 	
 	public Car(int no, CarDisplayI cd, Gate g, Semaphore[][] sem, Alley alley, Barrier barrier) {
 		this.sem = sem;
@@ -170,23 +169,30 @@ class Car extends Thread {
 				newpos = nextPos(curpos);
 				sem[newpos.row][newpos.col].P();
 				
-				// Move to new position
+				// Car has the semaphore of both its current position and the position it wants to enter
+				// Not displayed
 				move.P();
 				cd.clear(curpos);
 				tile = 0;
 				move.V();
-				
+
+				// Car has the semaphore of both its current position and the position it wants to enter
+				// Displayed in both its current position and the position it wants to enter
 				move.P();
 				cd.mark(curpos, newpos, col, no);
 				tile = 2;
 				move.V();
 				sleep(speed());
-				
+
+				// Car has the semaphore of both its current position and the position it wants to enter
+				// Nit displayed
 				move.P();
 				cd.clear(curpos, newpos);
 				tile = 0;
 				move.V();
-				
+
+				// Car has the semaphore of the position it wants to enter
+				// Displayed in its new position (which by the end of those code is its current position) 
 				move.P();
 				cd.mark(newpos, col, no);
 				tile = 1;
@@ -227,13 +233,6 @@ class Car extends Thread {
 				alley.cCounter--;
 			}
 		}
-		alley.update();
-		
-		if(atBarrier){
-			barrier.decrementCounter();
-		}
-		barrier.decrementN();
-		barrier.update();
 	}
 }
 
@@ -298,14 +297,7 @@ class Alley {
 				notifyAll();
 			}
 		}
-	}
-	public synchronized void update(){
-		if (ccCounter==0){
-			notifyAll();
-		}
-		if (cCounter==0){
-			notifyAll();
-		}
+		
 	}
 }
 
@@ -324,42 +316,18 @@ class Barrier {
 	public synchronized void sync(Car car) {
 		if(barrierOn){
 			while(ready){
-				try { 
-					wait();	
-				} catch (InterruptedException e) {
-					car.clear();
-					try {
-						while(car.isRemoved){
-							wait();
-						}
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-				}
+				try { wait();	} catch (InterruptedException e) {}
 			}
 			counter++;
-			car.atBarrier = true;
 			if (counter == N){
 				ready = true;
 				notifyAll();
 			}
 			
 			while(!ready){
-				try { 
-					wait();	
-				} catch (InterruptedException e) {
-					car.clear();
-					try {
-						while(car.isRemoved){
-							wait();
-						}
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-				}
+				try { wait();	} catch (InterruptedException e) {}
 			}
 			counter--;
-			car.atBarrier = false;
 			if(counter == 0){
 				ready = false;
 				notifyAll();
@@ -374,29 +342,6 @@ class Barrier {
 	public synchronized void off() {
 		barrierOn = false;
 		ready = true;
-	}
-
-	public synchronized void decrementN() {
-		N--;
-	}
-
-	public synchronized void incrementN() {
-		N++;
-	}
-	
-	public synchronized void update() {
-		if (counter == N){
-			ready = true;
-		}
-		if(counter == 0){
-			ready = false;
-		}
-		notifyAll();
-	}
-	
-	public synchronized void decrementCounter() {
-		counter--;
-		notifyAll();
 	}
 }
 
@@ -478,7 +423,6 @@ public class CarControl implements CarControlI {
 	public void restoreCar(int no) {
 		if(car[no].isRemoved){
 			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
-			barrier.incrementN();
 			car[no].start();
 		}
 	}

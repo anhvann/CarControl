@@ -64,12 +64,13 @@ class Car extends Thread {
 	Pos curpos; // Current position
 	Pos newpos; // New position to go to
 
-	Semaphore[][] sem;
-	Alley alley;
-	Barrier barrier;
-	Semaphore move;
+	public Semaphore[][] sem;
+	public Alley alley;
+	public Barrier barrier;
+	public Semaphore move;
 	int tile; //0 = in no tile, 1 = in one tile, 2 = in two tiles
-	boolean inAlley;
+	public boolean inAlley;
+	public boolean isRemoved;
 	
 	public Car(int no, CarDisplayI cd, Gate g, Semaphore[][] sem, Alley alley, Barrier barrier) {
 		this.sem = sem;
@@ -155,12 +156,11 @@ class Car extends Thread {
 				boolean ccBarrier = no <5 && curpos.row == 6 && curpos.col >= 3 && curpos.col <= 11;
 						
 				if (cBarrier || ccBarrier){
-					barrier.sync();
+					barrier.sync(this);
 				}
 
 				if (cEnter || ccEnter) {
-					inAlley = true;
-					alley.enter(no);
+					alley.enter(this);
 				} else if (cLeave || ccLeave) {
 					alley.leave(no);
 					inAlley = false;
@@ -168,29 +168,36 @@ class Car extends Thread {
 
 				newpos = nextPos(curpos);
 				sem[newpos.row][newpos.col].P();
-
-				// Move to new position
+				
+				// Car has the semaphore of both its current position and the position it wants to enter
+				// Not displayed
 				move.P();
 				cd.clear(curpos);
 				tile = 0;
 				move.V();
-				
+
+				// Car has the semaphore of both its current position and the position it wants to enter
+				// Displayed in both its current position and the position it wants to enter
 				move.P();
 				cd.mark(curpos, newpos, col, no);
 				tile = 2;
 				move.V();
 				sleep(speed());
-				
+
+				// Car has the semaphore of both its current position and the position it wants to enter
+				// Nit displayed
 				move.P();
 				cd.clear(curpos, newpos);
 				tile = 0;
 				move.V();
-				
+
+				// Car has the semaphore of the position it wants to enter
+				// Displayed in its new position (which by the end of those code is its current position) 
 				move.P();
 				cd.mark(newpos, col, no);
 				tile = 1;
 				sem[curpos.row][curpos.col].V();
-
+				
 				curpos = newpos;
 				move.V();
 			}
@@ -200,9 +207,33 @@ class Car extends Thread {
 			//cd.println("Exception in Car no. " + no);
 			//System.err.println("Exception in Car no. " + no + ":" + e);
 			//e.printStackTrace();
+			clear();
 		}
 	}
 
+	public void clear() {
+		Pos next = nextPos(curpos);
+		
+		if(tile == 1){
+			cd.clear(curpos);
+			sem[curpos.row][curpos.col].V();
+		} else if (tile == 2){
+			cd.clear(curpos, newpos);
+			sem[next.row][next.col].V();
+			sem[curpos.row][curpos.col].V();
+		} else {
+			sem[next.row][next.col].V();
+			sem[curpos.row][curpos.col].V();
+		}
+
+		if (inAlley){
+			if (no<5){
+				alley.ccCounter--;
+			} else {
+				alley.cCounter--;
+			}
+		}
+	}
 }
 
 class Alley {
@@ -215,17 +246,42 @@ class Alley {
 		ccCounter = 0;
 	}
 	
-	public synchronized void enter(int i){
+	public synchronized void enter(Car car){
+		int i = car.no;
 		if (i<5){
 			while(cCounter>0){
-				try {wait();} catch (InterruptedException e) {}
+				try {
+					wait();
+				} catch (InterruptedException e) {
+					car.clear();
+					try {
+						while(car.isRemoved){
+							wait();
+						}
+					} catch (InterruptedException e1) {
+						e1.printStackTrace();
+					}
+				}
 			}
 			ccCounter++;
+			car.inAlley = true;
 		} else {
 			while(ccCounter>0){
-				try {wait();} catch (InterruptedException e) {}
+				try {
+					wait();
+				} catch (InterruptedException e) {
+					car.clear();
+					try {
+						while(car.isRemoved){
+							wait();
+						}
+					} catch (InterruptedException e1) {
+						e1.printStackTrace();
+					}
+				}
 			}
 			cCounter++;
+			car.inAlley = true;
 		}
 	}
 	
@@ -256,8 +312,8 @@ class Barrier {
 		counter = 0;
 		ready = false;
 	}
-	
-	public synchronized void sync() {
+
+	public synchronized void sync(Car car) {
 		if(barrierOn){
 			while(ready){
 				try { wait();	} catch (InterruptedException e) {}
@@ -286,17 +342,7 @@ class Barrier {
 	public synchronized void off() {
 		barrierOn = false;
 		ready = true;
-		notifyAll();
 	}
-
-	public void decrementN() {
-		N--;
-	}
-
-	public void incrementN() {
-		N++;
-	}
-	
 }
 
 public class CarControl implements CarControlI {
@@ -362,34 +408,12 @@ public class CarControl implements CarControlI {
 	}
 
 	public void  removeCar(int no) {
-		if(car[no]!=null){
-			car[no].interrupt();
+		if(!car[no].isRemoved){
 			try {
 				car[no].move.P();
-				if(car[no].tile == 1){
-					cd.clear(car[no].curpos);
-					sem[car[no].curpos.row][car[no].curpos.col].V();
-				} else if (car[no].tile == 2){
-					cd.clear(car[no].curpos, car[no].newpos);
-					Pos next = car[no].nextPos(car[no].curpos);
-					sem[next.row][next.col].V();
-					sem[car[no].curpos.row][car[no].curpos.col].V();
-				} else {
-					Pos next = car[no].nextPos(car[no].curpos);
-					sem[next.row][next.col].V();
-					sem[car[no].curpos.row][car[no].curpos.col].V();
-				}
-				if (car[no].inAlley){
-					if (no<5){
-						alley.ccCounter--;
-					} else {
-						alley.cCounter--;
-					}
-				}
+				car[no].interrupt();
+				car[no].isRemoved = true;
 				car[no].move.V();
-				barrier.decrementN();
-				car[no] = null;
-				
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -397,9 +421,8 @@ public class CarControl implements CarControlI {
 	}
 
 	public void restoreCar(int no) {
-		if(car[no] == null){
+		if(car[no].isRemoved){
 			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
-			barrier.incrementN();
 			car[no].start();
 		}
 	}

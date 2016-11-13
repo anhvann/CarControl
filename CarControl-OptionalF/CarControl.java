@@ -377,7 +377,6 @@ class Barrier {
 	}
 	
 	public synchronized void update() {
-		System.out.println("COUNTER "+counter+", N "+N+", ready "+ready);
 		if (counter == N){
 			ready = true;
 		}
@@ -389,7 +388,6 @@ class Barrier {
 	
 	public synchronized void decrementCounter() {
 		counter--;
-		System.out.println("COUNTER "+counter+", N "+N+", ready "+ready);
 		notifyAll();
 	}
 }
