@@ -152,7 +152,7 @@ class Car extends Thread {
 				boolean ccEnter2 = curpos.row == 1 && curpos.col == 3;
 				
 				//Leave alley2
-				boolean cLeave2 = no > 4 && curpos.row == 0 && curpos.col == 2; 
+				boolean cLeave2 = curpos.row == 0 && curpos.col == 2; 
 				boolean ccLeave2 = (no != 1 && no != 2) && curpos.row == 2 && curpos.col == 0;
 				
 				//Leave alley
@@ -206,14 +206,12 @@ class Car extends Thread {
 
 class Alley {
 	
-	public boolean specialEnter;
 	volatile int cCounter; //clockwise counter
 	volatile int ccCounter; //counter-clockwise counter
 	
 	public Alley() {
 		cCounter = 0;
 		ccCounter = 0;
-		specialEnter = false;
 	}
 	
 	public synchronized void enter(int i){

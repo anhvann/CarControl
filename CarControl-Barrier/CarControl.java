@@ -250,40 +250,40 @@ class Barrier {
 	private volatile int counter;
 	private Semaphore barrier1;
 	private Semaphore barrier2;
-	private Semaphore lock;
+	private Semaphore mutex;
 	
 	public Barrier (){
 		barrierOn = false;
 		counter = 0;
 		barrier1 = new Semaphore(0);
 		barrier2 = new Semaphore(0);
-		lock = new Semaphore(1);
+		mutex = new Semaphore(1);
 	}
 	
 	public void sync() throws InterruptedException {
 		if(barrierOn){
-			lock.P();
+			mutex.P();
 			counter++;
 			if (counter == N){
-				lock.V();
+				mutex.V();
 				barrier2 = new Semaphore(0);
 				for(int i = 0; i<N; i++){
 					barrier1.V();
 				}
 			} else {
-				lock.V();
+				mutex.V();
 			}
 			barrier1.P();
-			lock.P();
+			mutex.P();
 			counter--;
 			if (counter == 0){
-				lock.V();
+				mutex.V();
 				barrier1 = new Semaphore(0);
 				for(int i = 0; i<N; i++){
 					barrier2.V();
 				}
 			} else {
-				lock.V();
+				mutex.V();
 			}
 			barrier2.P();
 		}

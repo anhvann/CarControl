@@ -66,13 +66,11 @@ class Car extends Thread {
 
 	Semaphore[][] sem;
 	Alley alley;
-	Alley alley2;
 	Barrier barrier;
 	
 	public Car(int no, CarDisplayI cd, Gate g, Semaphore[][] sem, Alley alley, Alley alley2, Barrier barrier) {
 		this.sem = sem;
 		this.alley = alley;
-		this.alley2 = alley2;
 		this.barrier = barrier;
 		this.no = no;
 		this.cd = cd;
@@ -168,15 +166,8 @@ class Car extends Thread {
 
 				if (cEnter || ccEnter) {
 					alley.enter(no);
-				} else if (cEnter2){
-					alley2.enter(no);
-				} else if (ccEnter2){
-					alley.enter(no);
-					alley2.enter(no);
 				} else if (cLeave || ccLeave) {
 					alley.leave(no);
-				} else if (cLeave2 || ccLeave2){
-					alley2.leave(no);
 				}
 				
 				newpos = nextPos(curpos);
@@ -206,51 +197,62 @@ class Car extends Thread {
 
 class Alley {
 	
-	public boolean specialEnter;
-	volatile int cCounter; //clockwise counter
-	volatile int ccCounter; //counter-clockwise counter
+	private Semaphore alley;
+	private Semaphore first;
+	private Semaphore mutex;
+	private volatile int cCounter; //clockwise counter
+	private volatile int ccCounter; //counter-clockwise counter
 	
 	public Alley() {
+		this.alley = new Semaphore(1);
+		this.first = new Semaphore(1);
+		this.mutex = new Semaphore(1);
 		cCounter = 0;
 		ccCounter = 0;
-		specialEnter = false;
 	}
 	
-	public synchronized void enter(int i){
-		if (i<5){
-			while(cCounter>0){
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-			ccCounter++;
-		} else {
-			while(ccCounter>0){
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
+	public void enter(int no) throws InterruptedException {
+		if (no >= 5) {
+			mutex.P();
 			cCounter++;
+			if (cCounter == 1) {
+				mutex.V();
+				alley.P();
+			} else if (cCounter > 1) {
+				mutex.V();
+			}
+		} else {
+			mutex.P();
+			ccCounter++;
+			if (ccCounter == 1) {
+				mutex.V();
+				first.P();
+				alley.P();
+				first.V();
+			} else if (ccCounter > 1){
+				mutex.V();
+				first.P();
+				first.V();
+			} 
 		}
 	}
 	
-	public synchronized void leave(int i){
-		if (i<5){
-			ccCounter--;
-			if (ccCounter==0){
-				notifyAll();
-			}
-		} else {
+	public void leave(int no) throws InterruptedException {
+		if (no >= 5) {
+			mutex.P();
 			cCounter--;
-			if (cCounter==0){
-				notifyAll();
+			if (cCounter == 0) {
+				alley.V();
 			}
+			mutex.V();
+		} else {
+			mutex.P();
+			ccCounter--;
+			if (ccCounter == 0) {
+				alley.V();
+			}
+			mutex.V();
 		}
-		
 	}
 }
 
@@ -258,44 +260,65 @@ class Barrier {
 	private Boolean barrierOn;
 	private int N = 9;
 	private volatile int counter;
-	private boolean ready;
+	private Semaphore barrier1;
+	private Semaphore barrier2;
+	private Semaphore mutex;
 	
 	public Barrier (){
 		barrierOn = false;
 		counter = 0;
-		ready = false;
+		barrier1 = new Semaphore(0);
+		barrier2 = new Semaphore(0);
+		mutex = new Semaphore(1);
 	}
 	
-	public synchronized void sync() {
+	public void sync() throws InterruptedException {
 		if(barrierOn){
-			while(ready){
-				try { wait();	} catch (InterruptedException e) {;}
-			}
+			mutex.P();
 			counter++;
 			if (counter == N){
-				ready = true;
-				notifyAll();
+				mutex.V();
+				barrier2 = new Semaphore(0);
+				for(int i = 0; i<N; i++){
+					barrier1.V();
+				}
+			} else {
+				mutex.V();
 			}
-			
-			while(!ready){
-				try { wait();	} catch (InterruptedException e) {;}
-			}
+			barrier1.P();
+			mutex.P();
 			counter--;
-			if(counter == 0){
-				ready = false;
-				notifyAll();
+			if (counter == 0){
+				mutex.V();
+				barrier1 = new Semaphore(0);
+				for(int i = 0; i<N; i++){
+					barrier2.V();
+				}
+			} else {
+				mutex.V();
 			}
+			barrier2.P();
 		}
 	}
 	
-	public synchronized void on() {
-		barrierOn = true;
+	public void on() {
+		if(!barrierOn){
+			barrierOn = true;
+			counter = 0;
+			barrier1 = new Semaphore(0);
+			barrier2 = new Semaphore(0);
+		}
 	}
 		
-	public synchronized void off() {
-		barrierOn = false;
-		ready = true;
-		notifyAll();
+	public void off() {
+		if(barrierOn){
+			barrierOn = false;
+			//Signal all
+			for(int i = 0; i<N; i++){
+				barrier1.V();
+				barrier2.V();
+			}		
+		}
 	}
 	
 }
