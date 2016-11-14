@@ -64,14 +64,9 @@ class Car extends Thread {
 	Pos curpos; // Current position
 	Pos newpos; // New position to go to
 
-	public Semaphore[][] sem;
-	public Alley alley;
-	public Barrier barrier;
-	public Semaphore move;
-	int tile; //0 = in no tile, 1 = in one tile, 2 = in two tiles
-	public boolean inAlley;
-	public boolean isRemoved;
-	public boolean atBarrier;
+	Semaphore[][] sem;
+	Alley alley;
+	Barrier barrier;
 	
 	public Car(int no, CarDisplayI cd, Gate g, Semaphore[][] sem, Alley alley, Barrier barrier) {
 		this.sem = sem;
@@ -79,9 +74,6 @@ class Car extends Thread {
 		this.barrier = barrier;
 		this.no = no;
 		this.cd = cd;
-		this.move = new Semaphore(1);
-		this.tile = 1;
-		this.inAlley = false;
 		mygate = g;
 		startpos = cd.getStartPos(no);
 		barpos = cd.getBarrierPos(no); // For later use
@@ -157,233 +149,166 @@ class Car extends Thread {
 				boolean ccBarrier = no <5 && curpos.row == 6 && curpos.col >= 3 && curpos.col <= 11;
 						
 				if (cBarrier || ccBarrier){
-					barrier.sync(this);
+					barrier.sync();
 				}
 
 				if (cEnter || ccEnter) {
-					alley.enter(this);
+					alley.enter(no);
 				} else if (cLeave || ccLeave) {
 					alley.leave(no);
-					inAlley = false;
 				}
-
+				
 				newpos = nextPos(curpos);
 				sem[newpos.row][newpos.col].P();
-				
+
 				// Move to new position
-				move.P();
 				cd.clear(curpos);
-				tile = 0;
-				move.V();
-				
-				move.P();
 				cd.mark(curpos, newpos, col, no);
-				tile = 2;
-				move.V();
 				sleep(speed());
-				
-				move.P();
 				cd.clear(curpos, newpos);
-				tile = 0;
-				move.V();
-				
-				move.P();
 				cd.mark(newpos, col, no);
-				tile = 1;
+
 				sem[curpos.row][curpos.col].V();
-				
 				curpos = newpos;
-				move.V();
 			}
 
-		} catch (Exception e) {
-			//TODO Interrupted
-			//cd.println("Exception in Car no. " + no);
-			//System.err.println("Exception in Car no. " + no + ":" + e);
-			//e.printStackTrace();
-			clean();
+		} catch (
+
+		Exception e) {
+			cd.println("Exception in Car no. " + no);
+			System.err.println("Exception in Car no. " + no + ":" + e);
+			e.printStackTrace();
 		}
 	}
 
-	public void clean() {
-		Pos next = nextPos(curpos);
-		
-		if(tile == 1){
-			cd.clear(curpos);
-			sem[curpos.row][curpos.col].V();
-		} else if (tile == 2){
-			cd.clear(curpos, newpos);
-			sem[next.row][next.col].V();
-			sem[curpos.row][curpos.col].V();
-		} else {
-			sem[next.row][next.col].V();
-			sem[curpos.row][curpos.col].V();
-		}
-
-		if (inAlley){
-			if (no<5){
-				alley.ccCounter--;
-			} else {
-				alley.cCounter--;
-			}
-		}
-		alley.update();
-		
-		if(atBarrier){
-			barrier.counter--;
-		}
-		barrier.N--;
-		barrier.update();
-	}
 }
 
 class Alley {
 	
-	volatile int cCounter; //clockwise counter
-	volatile int ccCounter; //counter-clockwise counter
+	private Semaphore alley;
+	private Semaphore first;
+	private Semaphore mutex;
+	private volatile int cCounter; //clockwise counter
+	private volatile int ccCounter; //counter-clockwise counter
 	
 	public Alley() {
+		this.alley = new Semaphore(1);
+		this.first = new Semaphore(1);
+		this.mutex = new Semaphore(1);
 		cCounter = 0;
 		ccCounter = 0;
 	}
-
-	public synchronized void enter(Car car){
-		int i = car.no;
-		if (i<5){
-			while(cCounter>0){
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					car.clean();
-					try {
-						while(car.isRemoved){
-							wait();
-						}
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-				}
-			}
-			ccCounter++;
-			car.inAlley = true;
-		} else {
-			while(ccCounter>0){
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					car.clean();
-					try {
-						while(car.isRemoved){
-							wait();
-						}
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-				}
-			}
+	
+	public void enter(int no) throws InterruptedException {
+		if (no >= 5) {
+			mutex.P();
 			cCounter++;
-			car.inAlley = true;
-		}
-	}
-	
-	public synchronized void leave(int i){
-		if (i<5){
-			ccCounter--;
-			if (ccCounter==0){
-				notifyAll();
+			if (cCounter == 1) {
+				mutex.V();
+				alley.P();
+			} else if (cCounter > 1) {
+				mutex.V();
 			}
 		} else {
-			cCounter--;
-			if (cCounter==0){
-				notifyAll();
-			}
+			mutex.P();
+			ccCounter++;
+			if (ccCounter == 1) {
+				mutex.V();
+				first.P();
+				alley.P();
+				first.V();
+			} else if (ccCounter > 1){
+				mutex.V();
+				first.P();
+				first.V();
+			} 
 		}
-		
 	}
 	
-	public synchronized void update() {
-		notifyAll();
+	public void leave(int no) throws InterruptedException {
+		if (no >= 5) {
+			mutex.P();
+			cCounter--;
+			if (cCounter == 0) {
+				alley.V();
+			}
+			mutex.V();
+		} else {
+			mutex.P();
+			ccCounter--;
+			if (ccCounter == 0) {
+				alley.V();
+			}
+			mutex.V();
+		}
 	}
 }
 
 class Barrier {
 	private Boolean barrierOn;
-	public volatile int N = 9;
-	public volatile int counter;
-	private boolean ready;
+	private int N = 9;
+	private volatile int counter;
+	private Semaphore barrier1;
+	private Semaphore barrier2;
+	private Semaphore mutex;
 	
 	public Barrier (){
 		barrierOn = false;
 		counter = 0;
-		ready = false;
+		barrier1 = new Semaphore(0);
+		barrier2 = new Semaphore(0);
+		mutex = new Semaphore(1);
 	}
-
-	public synchronized void sync(Car car) {
+	
+	public void sync() throws InterruptedException {
 		if(barrierOn){
-			while(ready){
-				try { 
-					wait();	
-				} catch (InterruptedException e) {
-					car.clean();
-					try {
-						while(car.isRemoved){
-							wait();
-						}
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-				}
-			}
+			mutex.P();
 			counter++;
-			car.atBarrier = true;
 			if (counter == N){
-				ready = true;
-				notifyAll();
-			}
-			
-			while(!ready){
-				try { 
-					wait();	
-				} catch (InterruptedException e) {
-					car.clean();
-					try {
-						while(car.isRemoved){
-							wait();
-						}
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
+				mutex.V();
+				barrier2 = new Semaphore(0);
+				for(int i = 0; i<N; i++){
+					barrier1.V();
 				}
+			} else {
+				mutex.V();
 			}
+			barrier1.P();
+			mutex.P();
 			counter--;
-			car.atBarrier = false;
-			if(counter == 0){
-				ready = false;
-				notifyAll();
+			if (counter == 0){
+				mutex.V();
+				barrier1 = new Semaphore(0);
+				for(int i = 0; i<N; i++){
+					barrier2.V();
+				}
+			} else {
+				mutex.V();
 			}
+			barrier2.P();
 		}
 	}
 	
-	public synchronized void on() {
-		barrierOn = true;
+	public void on() {
+		if(!barrierOn){
+			barrierOn = true;
+			counter = 0;
+			barrier1 = new Semaphore(0);
+			barrier2 = new Semaphore(0);
+		}
 	}
 		
-	public synchronized void off() {
-		barrierOn = false;
-		ready = true;
-		notifyAll();
+	public void off() {
+		if(barrierOn){
+			barrierOn = false;
+			//Signal all
+			for(int i = 0; i<N; i++){
+				barrier1.V();
+				barrier2.V();
+			}		
+		}
 	}
-
 	
-	public synchronized void update() {
-		if (counter == N){
-			ready = true;
-		}
-		if(counter == 0){
-			ready = false;
-		}
-		notifyAll();
-	}
 }
 
 public class CarControl implements CarControlI {
@@ -391,19 +316,17 @@ public class CarControl implements CarControlI {
 	CarDisplayI cd; // Reference to GUI
 	Car[] car; // Cars
 	Gate[] gate; // Gates
-	
 
 	Semaphore[][] sem;
 	int row = 11;
 	int col = 12;
 	Alley alley;
 	Barrier barrier;
-	int N = 9;
 	
 	public CarControl(CarDisplayI cd) {
 		this.cd = cd;
-		car = new Car[N];
-		gate = new Gate[N];
+		car = new Car[9];
+		gate = new Gate[9];
 		sem = new Semaphore[row][col];
 		alley = new Alley();
 		barrier = new Barrier();
@@ -414,7 +337,7 @@ public class CarControl implements CarControlI {
 			}
 		}
 
-		for (int no = 0; no < N; no++) {
+		for (int no = 0; no < 9; no++) {
 			gate[no] = new Gate();
 			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
 			car[no].start();
@@ -448,25 +371,12 @@ public class CarControl implements CarControlI {
 		}
 	}
 
-	public void  removeCar(int no) {
-		if(!car[no].isRemoved){
-			try {
-				car[no].move.P();
-				car[no].interrupt();
-				car[no].isRemoved = true;
-				car[no].move.V();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+	public void removeCar(int no) {
+		cd.println("Remove Car not implemented in this version");
 	}
 
 	public void restoreCar(int no) {
-		if(car[no].isRemoved){
-			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
-			barrier.N++;
-			car[no].start();
-		}
+		cd.println("Restore Car not implemented in this version");
 	}
 
 	/* Speed settings for testing purposes */
