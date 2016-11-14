@@ -21,26 +21,42 @@ public class CarTest extends Thread {
             	//Cars do not bump into each other and there is no deadlock
             	cars.println("Cars do not bump into each other and there is no deadlock");
             	cars.startAll();
+            	sleep(10000);
+            	cars.stopAll();
                 break;
-
+                
             case 1:
+            	//The alley synchronization works even if one car direction is entering the aley multiple times in a row
+            	cars.println("The alley synchronization works even if one car direction is entering the aley multiple times in a row");
+                cars.startAll();
+                cars.setSlow(true);
+                sleep(10000);
+                cars.stopAll();
+                cars.setSlow(false);
+                break;
+                
+            case 2:
             	//Car 1-8 wait for car 0 at the barrier
             	cars.println("Car 1-8 wait for car 0 at the barrier");
             	cars.startAll();
             	cars.barrierOn();
+            	sleep(2000);
+            	cars.startCar(0);
             	cars.stopAll();
+            	cars.barrierOff();
                 break;
                 
-            case 2:
+            case 3:
             	//All cars get through the barrier once they have all arrived at the barrier
             	//Car 0's gate is closed in the second round to show that car 0 actually gets through the barrier
             	cars.println("All cars get through the barrier");
             	cars.barrierOn();
             	cars.startAll();
-            	cars.stopCar(0);
+            	cars.stopAll();
+            	cars.barrierOff();
                 break;
                 
-            case 3:
+            case 4:
             	//4 cars are waiting at the barrier and get through because the barrier is removed
             	cars.println("Waiting cars get through the barrier when barrier is off");
             	cars.barrierOn();

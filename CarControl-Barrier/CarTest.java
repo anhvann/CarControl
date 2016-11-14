@@ -22,6 +22,10 @@ public class CarTest extends Thread {
             	cars.println("Car 1-8 wait for car 0 at the barrier");
             	cars.startAll();
             	cars.barrierOn();
+            	sleep(2000);
+            	cars.startCar(0);
+            	cars.stopAll();
+            	cars.barrierOff();
                 break;
                 
             case 1:
@@ -30,7 +34,8 @@ public class CarTest extends Thread {
             	cars.println("All cars get through the barrier");
             	cars.barrierOn();
             	cars.startAll();
-            	cars.stopCar(0);
+            	cars.stopAll();
+            	cars.barrierOff();
                 break;
                 
             case 2:

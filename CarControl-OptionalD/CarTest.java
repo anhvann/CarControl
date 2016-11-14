@@ -22,6 +22,8 @@ public class CarTest extends Thread {
             	cars.println("Car 1 and 2 enter the alley once there are no cars in the opposite direction on their path");
             	cars.setSpeed(1, 50);
             	cars.startAll();
+            	sleep(10000);
+            	cars.stopAll();
                 break;
 
             default:

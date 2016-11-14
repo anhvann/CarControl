@@ -22,6 +22,9 @@ public class CarTest extends Thread {
             	cars.println("No cars wait for more than two rounds to get through the alley");
             	cars.setSlow(true);
             	cars.startAll();
+            	sleep(25000);
+            	cars.stopAll();
+            	cars.setSlow(false);
                 break;
 
             default:

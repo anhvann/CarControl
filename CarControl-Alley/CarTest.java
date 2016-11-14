@@ -21,8 +21,18 @@ public class CarTest extends Thread {
             	//Cars do not bump into each other and there is no deadlock
             	cars.println("Cars do not bump into each other and there is no deadlock");
             	cars.startAll();
+            	sleep(10000);
+            	cars.stopAll();
                 break;
-
+            case 1:
+            	//The alley synchronization works even if one car direction is entering the aley multiple times in a row
+            	cars.println("The alley synchronization works even if one car direction is entering the aley multiple times in a row");
+                cars.startAll();
+                cars.setSlow(true);
+                sleep(10000);
+                cars.stopAll();
+                cars.setSlow(false);
+            	break;
             default:
                 cars.println("Test " + testno + " not available");
             }
