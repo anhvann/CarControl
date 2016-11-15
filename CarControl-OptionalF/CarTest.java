@@ -24,8 +24,10 @@ public class CarTest extends Thread {
             	cars.startAll();
             	sleep(1000);
             	cars.removeCar(2);
+            	sleep(15000);
             	cars.stopAll();
             	cars.barrierOff();
+            	cars.restoreCar(2);
                 break;
 
             case 1:
@@ -43,6 +45,7 @@ public class CarTest extends Thread {
             	sleep(1000);
             	cars.stopAll();
             	cars.barrierOff();
+            	cars.restoreCar(1);
                 break;
                 
             case 2:
