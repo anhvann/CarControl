@@ -78,8 +78,8 @@ public class CarTest extends Thread {
                 break;
             case 6:
             	//Remove car from waiting at alley and restore into gate
-            	//Cars waiting to enter the alley will not take the removed car into account
-            	cars.println("Car is removed from alley");
+            	//Other cars from the same direction waiting to enter alley, is one step closer and one car less needs to get out for the cars in the other direction to get it
+            	cars.println("Car is removed from right outside the alley");
             	cars.setSlow(true);
             	cars.setSpeed(8, 50);
             	cars.startAll();

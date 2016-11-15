@@ -18,64 +18,75 @@ public class CarTest extends Thread {
         try {
             switch (testno) { 
             case 0:
-            	//Remove random car not at barrier, the rest of the cars should be able to get through the barrier without the removed car
-            	cars.println("Car not at barrier is removed and the rest of the cars get through the barrier");
-            	cars.barrierOn();
-            	cars.startAll();
-            	sleep(1000);
+            	//Remove car from closed gate and restore into closed gate
+            	cars.println("Car is removed from closed gate and restored into closed gate");
             	cars.removeCar(2);
+            	sleep(1000);
+            	cars.restoreCar(2);
             	cars.stopAll();
-            	cars.barrierOff();
                 break;
 
             case 1:
-            	//Remove the last car that the cars at the barrier are waiting for, the rest of the cars should be able to get through the barrier without the removed car
-            	//This is a special case because the status of the cars at the barrier is usually only checked when a new car arrives at the barrier,
-            	//but when the last car that they are waiting for is removed, no car arrives at the barrier to update the status, 
-            	//so the status should be updated every time a car is removed as well
-            	cars.println("Last car is removed and the rest of the cars get through the barrier");
-            	cars.startCar(1);
+            	//Remove car from closed gate and restore into open gate
+            	cars.println("Car is removed from closed gate and restored into open gate");
+            	cars.removeCar(2);
+            	cars.startCar(2);
             	sleep(1000);
-            	cars.barrierOn();
-            	cars.startAll();
-            	sleep(2000);
-            	cars.removeCar(1);
+            	cars.restoreCar(2);
             	sleep(1000);
             	cars.stopAll();
-            	cars.barrierOff();
                 break;
                 
             case 2:
-            	//Restore a removed car just before the previously last car arrives at the barrier, the cars should wait for the restored car before they get through the barrier
-            	cars.println("Car is restored, cars at barrier should wait for it");
-            	cars.startCar(1);
+            	//Remove car and restore immediately into closed gate, no difference can be seen
+            	cars.println("Car is removed and restored immediately into closed gate, no difference can be seen");
             	cars.removeCar(2);
-            	sleep(1000);
-            	cars.barrierOn();
-            	cars.startAll();
-            	cars.stopCar(2);
-            	sleep(2000);
             	cars.restoreCar(2);
-            	sleep(5000);
-            	cars.startCar(2);
-            	sleep(2000);
-            	cars.stopAll();
-            	cars.barrierOff();
                 break;
             
             case 3:
-            	//Car waiting at barrier is removed and should no longer be taken into account by the barrier
-            	cars.println("Car waiting at the barrier is removed");
-            	cars.startAll();
-            	cars.barrierOn();
-            	sleep(1000);
+            	//Remove car and restore immediately into open gate, it only looks like the car is started
+            	cars.println("Car is removed and restored immediately into open gate, it only looks like the car is started");
+            	cars.startCar(2);
             	cars.removeCar(2);
-            	sleep(1000);
-            	cars.startCar(0);
+            	cars.restoreCar(2);
             	sleep(1000);
             	cars.stopAll();
+                break;
+            
+            case 4:
+            	//Remove car from outside gate and not in the alley and restore into gate
+            	cars.println("Car is removed from outside its gate and not in the alley and restored again");
+            	cars.startCar(2);
+            	sleep(1200);
+            	cars.removeCar(2);
             	cars.restoreCar(2);
-            	cars.barrierOff();
+            	cars.stopAll();
+                break;
+                
+            case 5:
+            	//Remove car from alley and restore into gate
+            	//Cars waiting to enter the alley will not take the removed car into account
+            	cars.println("Car is removed from alley");
+            	cars.setSlow(true);
+            	cars.setSpeed(2, 50);
+            	cars.startAll();
+            	sleep(2000);
+            	cars.removeCar(2);
+            	cars.stopAll();
+            	cars.restoreCar(2);
+                break;
+            case 6:
+            	//Remove car from waiting at alley and restore into gate
+            	//Cars waiting to enter the alley will not take the removed car into account
+            	cars.println("Car is removed from alley");
+            	cars.setSlow(true);
+            	cars.setSpeed(8, 50);
+            	cars.startAll();
+            	sleep(2500);
+            	cars.removeCar(8);
+            	cars.stopAll();
+            	cars.restoreCar(8);
                 break;
                 
             default:

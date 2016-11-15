@@ -228,12 +228,6 @@ class Car extends Thread {
 			}
 		}
 		alley.update();
-		
-		if(atBarrier){
-			barrier.counter--;
-		}
-		barrier.N--;
-		barrier.update();
 	}
 }
 
@@ -321,42 +315,18 @@ class Barrier {
 	public synchronized void sync(Car car) {
 		if(barrierOn){
 			while(ready){
-				try { 
-					wait();	
-				} catch (InterruptedException e) {
-					car.clean();
-					try {
-						while(car.isRemoved){
-							wait();
-						}
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-				}
+				try {wait();} catch (InterruptedException e) {}
 			}
 			counter++;
-			car.atBarrier = true;
 			if (counter == N){
 				ready = true;
 				notifyAll();
 			}
 			
 			while(!ready){
-				try { 
-					wait();	
-				} catch (InterruptedException e) {
-					car.clean();
-					try {
-						while(car.isRemoved){
-							wait();
-						}
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-				}
+				try {wait();} catch (InterruptedException e) {}
 			}
 			counter--;
-			car.atBarrier = false;
 			if(counter == 0){
 				ready = false;
 				notifyAll();
@@ -371,17 +341,6 @@ class Barrier {
 	public synchronized void off() {
 		barrierOn = false;
 		ready = true;
-		notifyAll();
-	}
-
-	
-	public synchronized void update() {
-		if (counter == N){
-			ready = true;
-		}
-		if(counter == 0){
-			ready = false;
-		}
 		notifyAll();
 	}
 }
