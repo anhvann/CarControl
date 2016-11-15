@@ -163,8 +163,7 @@ class Car extends Thread {
 				if (cEnter || ccEnter) {
 					alley.enter(this);
 				} else if (cLeave || ccLeave) {
-					alley.leave(no);
-					inAlley = false;
+					alley.leave(this);
 				}
 
 				newpos = nextPos(curpos);
@@ -286,14 +285,17 @@ class Alley {
 		}
 	}
 	
-	public synchronized void leave(int i){
+	public synchronized void leave(Car car){
+		int i = car.no;
 		if (i<5){
 			ccCounter--;
+			car.inAlley = false;
 			if (ccCounter==0){
 				notifyAll();
 			}
 		} else {
 			cCounter--;
+			car.inAlley = false;
 			if (cCounter==0){
 				notifyAll();
 			}

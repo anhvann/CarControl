@@ -163,8 +163,7 @@ class Car extends Thread {
 				if (cEnter || ccEnter) {
 					alley.enter(this);
 				} else if (cLeave || ccLeave) {
-					alley.leave(no);
-					inAlley = false;
+					alley.leave(this);
 				}
 
 				newpos = nextPos(curpos);
@@ -228,6 +227,12 @@ class Car extends Thread {
 			}
 		}
 		alley.update();
+		
+		if(atBarrier){
+			barrier.counter--;
+		}
+		barrier.N--;
+		barrier.update();
 	}
 }
 
@@ -280,14 +285,17 @@ class Alley {
 		}
 	}
 	
-	public synchronized void leave(int i){
+	public synchronized void leave(Car car){
+		int i = car.no;
 		if (i<5){
 			ccCounter--;
+			car.inAlley = false;
 			if (ccCounter==0){
 				notifyAll();
 			}
 		} else {
 			cCounter--;
+			car.inAlley = false;
 			if (cCounter==0){
 				notifyAll();
 			}
@@ -315,18 +323,42 @@ class Barrier {
 	public synchronized void sync(Car car) {
 		if(barrierOn){
 			while(ready){
-				try {wait();} catch (InterruptedException e) {}
+				try { 
+					wait();	
+				} catch (InterruptedException e) {
+					car.clean();
+					try {
+						while(car.isRemoved){
+							wait();
+						}
+					} catch (InterruptedException e1) {
+						e1.printStackTrace();
+					}
+				}
 			}
 			counter++;
+			car.atBarrier = true;
 			if (counter == N){
 				ready = true;
 				notifyAll();
 			}
 			
 			while(!ready){
-				try {wait();} catch (InterruptedException e) {}
+				try { 
+					wait();	
+				} catch (InterruptedException e) {
+					car.clean();
+					try {
+						while(car.isRemoved){
+							wait();
+						}
+					} catch (InterruptedException e1) {
+						e1.printStackTrace();
+					}
+				}
 			}
 			counter--;
+			car.atBarrier = false;
 			if(counter == 0){
 				ready = false;
 				notifyAll();
@@ -341,6 +373,17 @@ class Barrier {
 	public synchronized void off() {
 		barrierOn = false;
 		ready = true;
+		notifyAll();
+	}
+
+	
+	public synchronized void update() {
+		if (counter == N){
+			ready = true;
+		}
+		if(counter == 0){
+			ready = false;
+		}
 		notifyAll();
 	}
 }
