@@ -148,10 +148,12 @@ class Car extends Thread {
 				boolean cBarrier = no >= 5 && curpos.row == 5 && curpos.col >= 3 && curpos.col <= 11;
 				boolean ccBarrier = no <5 && curpos.row == 6 && curpos.col >= 3 && curpos.col <= 11;
 						
+				//Synchronize at barrier
 				if (cBarrier || ccBarrier){
 					barrier.sync();
 				}
 
+				//Enter alley
 				if (cEnter || ccEnter) {
 					alley.enter(no);
 				} else if (cLeave || ccLeave) {
@@ -200,27 +202,27 @@ class Alley {
 	}
 	
 	public void enter(int no) throws InterruptedException {
-		if (no >= 5) {
+		if (no >= 5) { //clockwise
 			mutex.P();
 			cCounter++;
-			if (cCounter == 1) {
+			if (cCounter == 1) { //first one to arrive
 				mutex.V();
 				alley.P();
-			} else if (cCounter > 1) {
+			} else if (cCounter > 1) { //first one is already inside
 				mutex.V();
 			}
-		} else {
+		} else { //counter-clockwise
 			mutex.P();
 			ccCounter++;
-			if (ccCounter == 1) {
+			if (ccCounter == 1) { //first one to arrive
 				mutex.V();
-				first.P();
-				alley.P();
+				first.P(); //make second car wait
+				alley.P(); //wait for access
 				first.V();
-			} else if (ccCounter > 1){
-				mutex.V();
-				first.P();
-				first.V();
+			} else if (ccCounter > 1){ //second one to arrive or first one is already inside
+				mutex.V(); 
+				first.P(); //wait for first to take alley semaphore
+				first.V(); //let following cars through immediately
 			} 
 		}
 	}
@@ -228,15 +230,15 @@ class Alley {
 	public void leave(int no) throws InterruptedException {
 		if (no >= 5) {
 			mutex.P();
-			cCounter--;
-			if (cCounter == 0) {
+			cCounter--; //leave
+			if (cCounter == 0) { //all have left
 				alley.V();
 			}
 			mutex.V();
 		} else {
 			mutex.P();
-			ccCounter--;
-			if (ccCounter == 0) {
+			ccCounter--; //leave
+			if (ccCounter == 0) { //all have left
 				alley.V();
 			}
 			mutex.V();
@@ -263,29 +265,29 @@ class Barrier {
 	public void sync() throws InterruptedException {
 		if(barrierOn){
 			mutex.P();
-			counter++;
-			if (counter == N){
+			counter++; //arrive
+			if (counter == N){ //all are present
 				mutex.V();
-				barrier2 = new Semaphore(0);
+				barrier2 = new Semaphore(0); //close barrier 2
 				for(int i = 0; i<N; i++){
-					barrier1.V();
+					barrier1.V(); //let all through barrier 1
 				}
 			} else {
 				mutex.V();
 			}
-			barrier1.P();
+			barrier1.P(); //wait for barrier 1 to open
 			mutex.P();
-			counter--;
-			if (counter == 0){
+			counter--; //leave
+			if (counter == 0){ //all have left
 				mutex.V();
-				barrier1 = new Semaphore(0);
+				barrier1 = new Semaphore(0); //close barrier 1
 				for(int i = 0; i<N; i++){
-					barrier2.V();
+					barrier2.V(); //let all through barrier 2
 				}
 			} else {
 				mutex.V();
 			}
-			barrier2.P();
+			barrier2.P(); //wait for barrier 2 to open
 		}
 	}
 	
@@ -293,8 +295,8 @@ class Barrier {
 		if(!barrierOn){
 			barrierOn = true;
 			counter = 0;
-			barrier1 = new Semaphore(0);
-			barrier2 = new Semaphore(0);
+			barrier1 = new Semaphore(0); //close barrier 1
+			barrier2 = new Semaphore(0); //close barrier 2
 		}
 	}
 		

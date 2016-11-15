@@ -162,20 +162,22 @@ class Car extends Thread {
 				boolean cBarrier = no >= 5 && curpos.row == 5 && curpos.col >= 3 && curpos.col <= 11;
 				boolean ccBarrier = no <5 && curpos.row == 6 && curpos.col >= 3 && curpos.col <= 11;
 						
+				//Synchronize at barrier
 				if (cBarrier || ccBarrier){
 					barrier.sync();
 				}
 
-				if (cEnter || ccEnter) {
+				//Enter alley
+				if (cEnter || ccEnter) { //enter alley
 					alley.enter(no);
-				} else if (cEnter2){
+				} else if (cEnter2){ //enter top part of alley
 					alley2.enter(no);
-				} else if (ccEnter2){
+				} else if (ccEnter2){ //enter both parts of alley
 					alley.enter(no);
 					alley2.enter(no);
-				} else if (cLeave || ccLeave) {
+				} else if (cLeave || ccLeave) { //leave alley
 					alley.leave(no);
-				} else if (cLeave2 || ccLeave2){
+				} else if (cLeave2 || ccLeave2){ //leave top part of alley
 					alley2.leave(no);
 				}
 				
@@ -218,33 +220,33 @@ class Alley {
 		if (i<5){
 			while(cCounter>0){
 				try {
-					wait();
+					wait(); //wait for access
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
-			ccCounter++;
+			ccCounter++; //enter
 		} else {
 			while(ccCounter>0){
 				try {
-					wait();
+					wait(); //wait for access
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
-			cCounter++;
+			cCounter++; //enter
 		}
 	}
 	
 	public synchronized void leave(int i){
 		if (i<5){
 			ccCounter--;
-			if (ccCounter==0){
+			if (ccCounter==0){ //all have left
 				notifyAll();
 			}
 		} else {
 			cCounter--;
-			if (cCounter==0){
+			if (cCounter==0){ //all have left
 				notifyAll();
 			}
 		}
@@ -267,19 +269,19 @@ class Barrier {
 	public synchronized void sync() {
 		if(barrierOn){
 			while(ready){
-				try { wait();	} catch (InterruptedException e) {;}
+				try { wait();	} catch (InterruptedException e) {;} //wait for others to leave
 			}
 			counter++;
-			if (counter == N){
+			if (counter == N){ //all are present
 				ready = true;
 				notifyAll();
 			}
 			
 			while(!ready){
-				try { wait();	} catch (InterruptedException e) {;}
+				try { wait();	} catch (InterruptedException e) {;} //wait for others to arrive
 			}
 			counter--;
-			if(counter == 0){
+			if(counter == 0){ //all have left
 				ready = false;
 				notifyAll();
 			}

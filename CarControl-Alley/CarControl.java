@@ -195,24 +195,24 @@ class Alley {
 		if (no >= 5) { //clockwise
 			mutex.P();
 			cCounter++;
-			if (cCounter == 1) {
+			if (cCounter == 1) { //first one to arrive
 				mutex.V();
 				alley.P();
-			} else if (cCounter > 1) {
+			} else if (cCounter > 1) { //first one is already inside
 				mutex.V();
 			}
 		} else { //counter-clockwise
 			mutex.P();
 			ccCounter++;
-			if (ccCounter == 1) {
+			if (ccCounter == 1) { //first one to arrive
 				mutex.V();
-				first.P();
-				alley.P();
+				first.P(); //make second car wait
+				alley.P(); //wait for access
 				first.V();
-			} else if (ccCounter > 1){
+			} else if (ccCounter > 1){ //second one to arrive or first one is already inside
 				mutex.V();
-				first.P();
-				first.V();
+				first.P(); //wait for first to take alley semaphore
+				first.V(); //let following cars through immediately
 			} 
 		}
 	}
@@ -220,54 +220,20 @@ class Alley {
 	public void leave(int no) throws InterruptedException {
 		if (no >= 5) {
 			mutex.P();
-			cCounter--;
-			if (cCounter == 0) {
+			cCounter--; //leave
+			if (cCounter == 0) { //all have left
 				alley.V();
 			}
 			mutex.V();
 		} else {
 			mutex.P();
-			ccCounter--;
-			if (ccCounter == 0) {
+			ccCounter--; //leave
+			if (ccCounter == 0) { //all have left
 				alley.V();
 			}
 			mutex.V();
 		}
 	}
-}
-
-class Barrier {
-	private Boolean status;
-	private volatile int[] arrive;
-	private int N = 9;
-	
-	public Barrier (){
-		status = false;
-		arrive = new int[N];
-	}
-	
-	public void sync(int i) throws InterruptedException {
-		if(status){
-			for (int s = 1; s<=3; s++){
-				arrive[i]++;
-				int j = (i + (int) Math.pow(2, s-1))%N;
-				while(arrive[j] < arrive[i]){
-					if(!status){
-						break;
-					}
-				}
-			}
-		}
-	}
-	
-	public void on() {
-		status = true;
-	}
-		
-	public void off() {
-		status = false;
-	}
-	
 }
 
 public class CarControl implements CarControlI {

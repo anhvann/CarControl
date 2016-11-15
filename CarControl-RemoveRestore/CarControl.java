@@ -155,11 +155,13 @@ class Car extends Thread {
 				boolean ccLeave = curpos.row == 9 && curpos.col == 1;
 				boolean cBarrier = no >= 5 && curpos.row == 5 && curpos.col >= 3 && curpos.col <= 11;
 				boolean ccBarrier = no <5 && curpos.row == 6 && curpos.col >= 3 && curpos.col <= 11;
-						
+					
+				//Synchronize at barrier
 				if (cBarrier || ccBarrier){
 					barrier.sync(this);
 				}
 
+				//Enter alley
 				if (cEnter || ccEnter) {
 					alley.enter(this);
 				} else if (cLeave || ccLeave) {
@@ -170,22 +172,31 @@ class Car extends Thread {
 				sem[newpos.row][newpos.col].P();
 				
 				// Move to new position
+				
+				//Car has the semaphore of both its current position and the position it wants to enter
+				//Not displayed
 				move.P();
 				cd.clear(curpos);
 				tile = 0;
 				move.V();
 				
+				//Car has the semaphore of both its current position and the position it wants to enter
+				//Displayed in both its current position and the position it wants to enter
 				move.P();
 				cd.mark(curpos, newpos, col, no);
 				tile = 2;
 				move.V();
 				sleep(speed());
 				
+				//Car has the semaphore of both its current position and the position it wants to enter
+				//Not displayed
 				move.P();
 				cd.clear(curpos, newpos);
 				tile = 0;
 				move.V();
 				
+				//Car has the semaphore of the potision it wants to enter
+				//Displayed in its new position (which by the end of this code is its current position)
 				move.P();
 				cd.mark(newpos, col, no);
 				tile = 1;
@@ -207,26 +218,26 @@ class Car extends Thread {
 	public void clean() {
 		Pos next = nextPos(curpos);
 		
-		if(tile == 1){
+		if(tile == 1){ //in one tile with one semaphore
 			cd.clear(curpos);
 			sem[curpos.row][curpos.col].V();
-		} else if (tile == 2){
+		} else if (tile == 2){ //in two tiles with two semaphores
 			cd.clear(curpos, newpos);
 			sem[next.row][next.col].V();
 			sem[curpos.row][curpos.col].V();
-		} else {
+		} else { //in no tiles with two semaphores
 			sem[next.row][next.col].V();
 			sem[curpos.row][curpos.col].V();
 		}
 
-		if (inAlley){
+		if (inAlley){ //remove from alley counters
 			if (no<5){
 				alley.ccCounter--;
 			} else {
 				alley.cCounter--;
 			}
 		}
-		alley.update();
+		alley.update(); //notify alley
 	}
 }
 
@@ -245,12 +256,12 @@ class Alley {
 		if (i<5){
 			while(cCounter>0){
 				try {
-					wait();
+					wait(); //for active cars
 				} catch (InterruptedException e) {
 					car.clean();
 					try {
-						while(car.isRemoved){
-							wait();
+						while(car.isRemoved){ 
+							wait(); //for removed cars
 						}
 					} catch (InterruptedException e1) {
 						e1.printStackTrace();
@@ -262,12 +273,12 @@ class Alley {
 		} else {
 			while(ccCounter>0){
 				try {
-					wait();
+					wait(); //for active cars
 				} catch (InterruptedException e) {
 					car.clean();
 					try {
-						while(car.isRemoved){
-							wait();
+						while(car.isRemoved){ 
+							wait(); //for removed cars
 						}
 					} catch (InterruptedException e1) {
 						e1.printStackTrace();
@@ -284,13 +295,13 @@ class Alley {
 		if (i<5){
 			ccCounter--;
 			car.inAlley = false;
-			if (ccCounter==0){
+			if (ccCounter==0){ //all have left
 				notifyAll();
 			}
 		} else {
 			cCounter--;
 			car.inAlley = false;
-			if (cCounter==0){
+			if (cCounter==0){ //all have left
 				notifyAll();
 			}
 		}
@@ -320,7 +331,7 @@ class Barrier {
 				try {wait();} catch (InterruptedException e) {}
 			}
 			counter++;
-			if (counter == N){
+			if (counter == N){ //all are present
 				ready = true;
 				notifyAll();
 			}
@@ -329,7 +340,7 @@ class Barrier {
 				try {wait();} catch (InterruptedException e) {}
 			}
 			counter--;
-			if(counter == 0){
+			if(counter == 0){ //all have left
 				ready = false;
 				notifyAll();
 			}
@@ -412,7 +423,7 @@ public class CarControl implements CarControlI {
 	public void  removeCar(int no) {
 		if(!car[no].isRemoved){
 			try {
-				car[no].move.P();
+				car[no].move.P(); //wait til status has been set
 				car[no].interrupt();
 				car[no].isRemoved = true;
 				car[no].move.V();
@@ -425,7 +436,6 @@ public class CarControl implements CarControlI {
 	public void restoreCar(int no) {
 		if(car[no].isRemoved){
 			car[no] = new Car(no, cd, gate[no], sem, alley, barrier);
-			barrier.N++;
 			car[no].start();
 		}
 	}
