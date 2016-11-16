@@ -18,67 +18,56 @@ public class CarTest extends Thread {
         try {
             switch (testno) { 
             case 0:
-            	//Remove random car not at barrier, the rest of the cars should be able to get through the barrier without the removed car
-            	cars.println("Car not at barrier is removed and the rest of the cars get through the barrier");
-            	cars.barrierOn();
+            	//Cars do not bump into each other and there is no deadlock
+            	cars.println("Cars do not bump into each other and there is no deadlock");
             	cars.startAll();
-            	sleep(1000);
-            	cars.removeCar(2);
-            	sleep(15000);
+            	sleep(10000);
             	cars.stopAll();
-            	cars.barrierOff();
-            	cars.restoreCar(2);
                 break;
-
+                
             case 1:
-            	//Remove the last car that the cars at the barrier are waiting for, the rest of the cars should be able to get through the barrier without the removed car
-            	//This is a special case because the status of the cars at the barrier is usually only checked when a new car arrives at the barrier,
-            	//but when the last car that they are waiting for is removed, no car arrives at the barrier to update the status, 
-            	//so the status should be updated every time a car is removed as well
-            	cars.println("Last car is removed and the rest of the cars get through the barrier");
-            	cars.startCar(1);
-            	sleep(1000);
-            	cars.barrierOn();
-            	cars.startAll();
-            	sleep(2000);
-            	cars.removeCar(1);
-            	sleep(1000);
-            	cars.stopAll();
-            	cars.barrierOff();
-            	cars.restoreCar(1);
+            	//The alley synchronization works even if one car direction is entering the aley multiple times in a row
+            	cars.println("The alley synchronization works even if one car direction is entering the aley multiple times in a row");
+                cars.startAll();
+                cars.setSlow(true);
+                sleep(10000);
+                cars.stopAll();
+                cars.setSlow(false);
                 break;
                 
             case 2:
-            	//Restore a removed car just before the previously last car arrives at the barrier, the cars should wait for the restored car before they get through the barrier
-            	cars.println("Car is restored, cars at barrier should wait for it");
-            	cars.startCar(1);
-            	cars.removeCar(2);
-            	sleep(1000);
+            	//Car 1-8 wait for car 0 at the barrier
+            	cars.println("Car 1-8 wait for car 0 at the barrier");
+            	cars.startAll();
+            	cars.barrierOn();
+            	sleep(2000);
+            	cars.startCar(0);
+            	cars.stopAll();
+            	cars.barrierOff();
+                break;
+                
+            case 3:
+            	//All cars get through the barrier once they have all arrived at the barrier
+            	//Car 0's gate is closed in the second round to show that car 0 actually gets through the barrier
+            	cars.println("All cars get through the barrier");
             	cars.barrierOn();
             	cars.startAll();
-            	cars.stopCar(2);
-            	sleep(2000);
-            	cars.restoreCar(2);
-            	sleep(5000);
-            	cars.startCar(2);
             	sleep(2000);
             	cars.stopAll();
             	cars.barrierOff();
                 break;
-            
-            case 3:
-            	//Car waiting at barrier is removed and should no longer be taken into account by the barrier
-            	cars.println("Car waiting at the barrier is removed");
-            	cars.startAll();
+                
+            case 4:
+            	//4 cars are waiting at the barrier and get through because the barrier is removed
+            	cars.println("Waiting cars get through the barrier when barrier is off");
             	cars.barrierOn();
-            	sleep(1000);
-            	cars.removeCar(2);
-            	sleep(1000);
             	cars.startCar(0);
+            	cars.startCar(1);
+            	cars.startCar(2);
+            	cars.startCar(3);
             	sleep(1000);
-            	cars.stopAll();
-            	cars.restoreCar(2);
             	cars.barrierOff();
+            	cars.stopAll();
                 break;
                 
             default:

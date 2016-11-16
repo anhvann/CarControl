@@ -34,6 +34,7 @@ public class CarTest extends Thread {
             	cars.println("All cars get through the barrier");
             	cars.barrierOn();
             	cars.startAll();
+            	sleep(2000);
             	cars.stopAll();
             	cars.barrierOff();
                 break;
